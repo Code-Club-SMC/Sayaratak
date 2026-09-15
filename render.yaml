@@ -12,8 +12,8 @@ services:
     plan: free # Can be upgraded to 'starter' ($7/mo)
     region: frankfurt
     rootDir: ./api
-    dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /api
     autoDeploy: true
     envVars:
