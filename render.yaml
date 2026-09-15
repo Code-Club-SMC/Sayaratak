@@ -1,0 +1,47 @@
+databases:
+  - name: sayaratak-db
+    databaseName: sayaratak
+    user: postgres
+    plan: free # Can be upgraded to 'starter' ($7/mo) for 24/7 uptime without sleep
+    region: frankfurt # Low latency hub for Middle East & Africa
+
+services:
+  - type: web
+    name: sayaratak-api
+    runtime: docker
+    plan: free # Can be upgraded to 'starter' ($7/mo)
+    region: frankfurt
+    rootDir: ./api
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    healthCheckPath: /api
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sayaratak-db
+          property: connectionString
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        sync: false # Set to https://sayaratak-api.onrender.com (or your custom domain)
+      - key: CLIENT_URL
+        value: https://sayaratak.com
+      - key: ADMIN_CREATE_SECRET
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
