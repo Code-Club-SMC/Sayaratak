@@ -1,7 +1,7 @@
 databases:
   - name: sayaratak-db
     databaseName: sayaratak
-    user: postgres
+    user: sayaratak_user
     plan: free # Can be upgraded to 'starter' ($7/mo) for 24/7 uptime without sleep
     region: frankfurt # Low latency hub for Middle East & Africa
 
