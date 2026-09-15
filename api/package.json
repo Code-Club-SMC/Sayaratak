@@ -4,9 +4,9 @@
     "dev": "bun run --hot src/index.ts",
     "test": "bun test",
     "db:generate": "drizzle-kit generate --config=drizzle-config.ts",
-    "db:migrate": "drizzle-kit migrate --config=drizzle-config.ts",
+    "db:migrate": "bun run src/db/migrate.ts && drizzle-kit migrate --config=drizzle-config.ts",
     "db:seed": "bun run src/db/seed.ts",
-    "db:setup": "drizzle-kit migrate --config=drizzle-config.ts && bun run src/db/seed.ts"
+    "db:setup": "bun run db:migrate && bun run db:seed"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.0",
