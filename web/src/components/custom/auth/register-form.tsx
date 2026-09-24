@@ -12,7 +12,6 @@ import {
 	FieldError,
 	FieldGroup,
 	FieldLabel,
-	FieldSeparator,
 	FieldTitle,
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
@@ -48,9 +47,7 @@ export const RegisterForm = () => {
 				name: value.fullName,
 				email: value.email,
 				password: value.password,
-				accountType: value.accountType,
 				cityId: value.city,
-				country: value.country, // Add this
 			},
 			{
 				onSuccess: () => {

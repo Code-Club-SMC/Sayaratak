@@ -13,7 +13,7 @@ export const Route = createFileRoute("/$locale/_auth")({
 			const { data } = await authClient.getSession();
 			if (data?.session) {
 				throw redirect({
-					to: "/$locale/_dashboard/dashboard",
+					to: "/$locale/dashboard",
 					params: { locale: params.locale },
 				});
 			}

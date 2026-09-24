@@ -27,10 +27,23 @@ async function runHydrationAudit() {
 		origWarn(...args);
 	};
 
+	// Detect active port (3000 or 3001)
+	let baseUrl = "http://localhost:3000";
+	try {
+		const ping3000 = await fetch("http://localhost:3000/en");
+		const text3000 = await ping3000.text();
+		if (!text3000.includes("Sayaratak")) {
+			baseUrl = "http://localhost:3001";
+		}
+	} catch {
+		baseUrl = "http://localhost:3001";
+	}
+	console.log(`Using server endpoint: ${baseUrl}`);
+
 	try {
 		// 1. Fetch live English SSR response
-		console.log("\n[1/3] Fetching live English SSR stream from http://localhost:3000/en ...");
-		const resEn = await fetch("http://localhost:3000/en", {
+		console.log(`\n[1/3] Fetching live English SSR stream from ${baseUrl}/en ...`);
+		const resEn = await fetch(`${baseUrl}/en`, {
 			headers: { "Accept-Encoding": "identity" },
 		});
 		const htmlEn = await resEn.text();
@@ -53,8 +66,8 @@ async function runHydrationAudit() {
 		}
 
 		// 2. Fetch live Arabic SSR response
-		console.log("\n[2/3] Fetching live Arabic SSR stream from http://localhost:3000/ar ...");
-		const resAr = await fetch("http://localhost:3000/ar", {
+		console.log(`\n[2/3] Fetching live Arabic SSR stream from ${baseUrl}/ar ...`);
+		const resAr = await fetch(`${baseUrl}/ar`, {
 			headers: { "Accept-Encoding": "identity" },
 		});
 		const htmlAr = await resAr.text();
@@ -78,8 +91,8 @@ async function runHydrationAudit() {
 		}
 
 		// 3. Check for root redirect
-		console.log("\n[3/3] Checking root route http://localhost:3000/ redirect...");
-		const resRoot = await fetch("http://localhost:3000/", {
+		console.log(`\n[3/3] Checking root route ${baseUrl}/ redirect...`);
+		const resRoot = await fetch(`${baseUrl}/`, {
 			redirect: "manual",
 		});
 		console.log(`      Status code: ${resRoot.status}, Location: ${resRoot.headers.get("location")}`);

@@ -1,6 +1,6 @@
-import { useNavigate, useMatches } from "@tanstack/react-router";
-import { useTranslation, type SupportedLocale } from "@/lib/i18n";
+import { useMatches, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { type SupportedLocale, useTranslation } from "@/lib/i18n";
 
 /**
  * Locale switcher — toggles between English and Arabic.
@@ -23,10 +23,7 @@ export function LocaleSwitcher() {
 
 		const currentPath = currentMatch.fullPath;
 		// Replace the locale segment in the path
-		const newPath = currentPath.replace(
-			`/${locale}`,
-			`/${targetLocale}`,
-		);
+		const newPath = currentPath.replace(`/${locale}`, `/${targetLocale}`);
 
 		navigate({
 			to: newPath,

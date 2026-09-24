@@ -1,25 +1,25 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	BarChart3,
-	Users,
 	Car,
-	Flag,
 	CreditCard,
-	Tags,
+	FileText,
+	Flag,
+	Image,
+	LogOut,
 	MapPin,
 	Package,
-	Image,
-	FileText,
 	Send,
-	Store,
-	LogOut,
 	ShieldCheck,
+	Store,
+	Tags,
+	Users,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { LocaleSwitcher } from "@/components/shared/locale-switcher";
-import { useTranslation } from "@/lib/i18n";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { useTranslation } from "@/lib/i18n";
 
 type AdminSidebarProps = {
 	adminUser: {
@@ -36,7 +36,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 	async function handleLogout() {
 		await authClient.signOut();
 		navigate({
-			to: "/$locale/_public",
+			to: "/$locale",
 			params: { locale },
 		});
 	}
@@ -48,7 +48,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 				{
 					label: t.admin.metrics,
 					icon: BarChart3,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 			],
 		},
@@ -58,22 +58,22 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 				{
 					label: t.admin.users,
 					icon: Users,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.listings,
 					icon: Car,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.reports,
 					icon: Flag,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.payments,
 					icon: CreditCard,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 			],
 		},
@@ -83,32 +83,32 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 				{
 					label: t.admin.taxonomy,
 					icon: Tags,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.locations,
 					icon: MapPin,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.subscriptions,
 					icon: Package,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.banners,
 					icon: Image,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.pages,
 					icon: FileText,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 				{
 					label: t.admin.broadcast,
 					icon: Send,
-					to: "/$locale/_admin/admin" as const,
+					to: "/$locale/admin" as const,
 				},
 			],
 		},
@@ -121,7 +121,11 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 				{/* Logo & Admin Badge */}
 				<div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
 					<div className="flex items-center gap-2">
-						<Link to="/$locale/_public" params={{ locale }} className="flex items-center gap-2">
+						<Link
+							to="/$locale"
+							params={{ locale }}
+							className="flex items-center gap-2"
+						>
 							<img
 								src="/sayaratak-logo.svg"
 								alt="Sayaratak"
@@ -141,7 +145,9 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 						<ShieldCheck className="size-5" />
 					</div>
 					<div className="flex-1 min-w-0">
-						<p className="text-sm font-semibold truncate text-slate-100">{adminUser.name}</p>
+						<p className="text-sm font-semibold truncate text-slate-100">
+							{adminUser.name}
+						</p>
 						<p className="text-xs text-slate-400 truncate">{adminUser.email}</p>
 					</div>
 				</div>
@@ -162,7 +168,8 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 										params={{ locale }}
 										className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors"
 										activeProps={{
-											className: "bg-amber-500/20 text-amber-300 font-semibold hover:bg-amber-500/25",
+											className:
+												"bg-amber-500/20 text-amber-300 font-semibold hover:bg-amber-500/25",
 										}}
 									>
 										<Icon className="size-4 shrink-0 text-slate-400" />
@@ -182,7 +189,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 					className="w-full justify-start text-slate-300 hover:bg-slate-800 hover:text-white gap-3 text-sm"
 					asChild
 				>
-					<Link to="/$locale/_public" params={{ locale }}>
+					<Link to="/$locale" params={{ locale }}>
 						<Store className="size-4" />
 						<span>{t.nav.backToSite}</span>
 					</Link>

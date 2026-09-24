@@ -12,7 +12,10 @@ export const SUPPORTED_LOCALES: readonly SupportedLocale[] = ["en", "ar"];
 export const DEFAULT_LOCALE: SupportedLocale = "en";
 
 export function isValidLocale(value: unknown): value is SupportedLocale {
-	return typeof value === "string" && SUPPORTED_LOCALES.includes(value as SupportedLocale);
+	return (
+		typeof value === "string" &&
+		SUPPORTED_LOCALES.includes(value as SupportedLocale)
+	);
 }
 
 export function getDirection(locale: SupportedLocale): TextDirection {

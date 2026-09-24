@@ -1,6 +1,6 @@
 import { useRouteContext } from "@tanstack/react-router";
-import { dictionaries, type Dictionary } from "./messages";
 import type { SupportedLocale, TextDirection } from "./locale";
+import { type Dictionary, dictionaries } from "./messages";
 
 type TranslationResult = {
 	/** Current locale derived from URL */

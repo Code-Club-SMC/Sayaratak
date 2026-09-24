@@ -1,74 +1,37 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { savedSearches } from "../db/schemas/social-schema";
-import { auth } from "../../lib/auth";
-
-import { z } from "zod";
+import { requireAuth, type SessionUser } from "../middleware/auth";
 import { zValidator } from "@hono/zod-validator";
+import { handleAppError } from "../lib/errors";
+import { savedSearchesService } from "../services/saved-searches.service";
+import {
+	createSavedSearchSchema,
+	idParamSchema,
+} from "../schemas";
 
-export const savedSearchesApp = new Hono<{ Variables: { user: any } }>();
+export const savedSearchesApp = new Hono<{ Variables: { user: SessionUser } }>();
 
-const createSavedSearchSchema = z.object({
-	title: z.string().min(1, "Title is required"),
-	filters: z.record(z.string(), z.any()),
-});
+savedSearchesApp.onError(handleAppError);
+savedSearchesApp.use("/*", requireAuth());
 
 // GET /api/saved-searches
 savedSearchesApp.get("/", async (c) => {
-	const session = await auth.api.getSession({ headers: c.req.raw.headers });
-	if (!session) return c.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
-
-	const searches = await db
-		.select({
-			id: savedSearches.id,
-			userId: savedSearches.userId,
-			title: savedSearches.title,
-			filters: savedSearches.filters,
-			lastNotifiedAt: savedSearches.lastNotifiedAt,
-			createdAt: savedSearches.createdAt,
-			updatedAt: savedSearches.updatedAt,
-		})
-		.from(savedSearches)
-		.where(eq(savedSearches.userId, session.user.id));
+	const user = c.get("user");
+	const searches = await savedSearchesService.listSavedSearches(user.id);
 	return c.json(searches);
 });
 
 // POST /api/saved-searches
 savedSearchesApp.post("/", zValidator("json", createSavedSearchSchema), async (c) => {
-	const session = await auth.api.getSession({ headers: c.req.raw.headers });
-	if (!session) return c.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
-
-	const { title, filters } = c.req.valid("json");
-
-	const [created] = await db.insert(savedSearches).values({
-		userId: session.user.id,
-		title,
-		filters,
-	}).returning();
-
-	return c.json({
-		id: created.id,
-		userId: created.userId,
-		title: created.title,
-		filters: created.filters,
-		lastNotifiedAt: created.lastNotifiedAt,
-		createdAt: created.createdAt,
-		updatedAt: created.updatedAt,
-	}, 201);
+	const user = c.get("user");
+	const body = c.req.valid("json");
+	const created = await savedSearchesService.createSavedSearch(user.id, body);
+	return c.json(created, 201);
 });
 
 // DELETE /api/saved-searches/:id
-savedSearchesApp.delete("/:id", async (c) => {
-	const session = await auth.api.getSession({ headers: c.req.raw.headers });
-	if (!session) return c.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
-
-	const id = c.req.param("id");
-	const [existing] = await db.select().from(savedSearches).where(eq(savedSearches.id, id));
-	
-	if (!existing) return c.json({ error: "Not found", code: "SEARCH_NOT_FOUND" }, 404);
-	if (existing.userId !== session.user.id) return c.json({ error: "Forbidden", code: "FORBIDDEN" }, 403);
-
-	await db.delete(savedSearches).where(eq(savedSearches.id, id));
-	return c.json({ success: true });
+savedSearchesApp.delete("/:id", zValidator("param", idParamSchema), async (c) => {
+	const user = c.get("user");
+	const { id } = c.req.valid("param");
+	const result = await savedSearchesService.deleteSavedSearch(id, user.id);
+	return c.json(result);
 });

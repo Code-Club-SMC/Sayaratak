@@ -1,26 +1,27 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-	LayoutDashboard,
-	Car,
-	PlusCircle,
-	MessageSquare,
+	ArrowRight,
 	Bell,
+	FileText,
 	Heart,
-	Bookmark,
-	Building2,
-	Star,
-	CreditCard,
+	Home,
+	MessageSquare,
 	Settings,
-	ShieldAlert,
-	Store,
-	LogOut,
+	Zap,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LocaleSwitcher } from "@/components/shared/locale-switcher";
-import { useTranslation } from "@/lib/i18n";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { useTranslation } from "@/lib/i18n";
 
 type DashboardUser = {
 	id: string;
@@ -39,179 +40,153 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 	const { t, locale } = useTranslation();
 	const navigate = useNavigate();
 
-	async function handleLogout() {
+	async function _handleLogout() {
 		await authClient.signOut();
 		navigate({
-			to: "/$locale/_public",
+			to: "/$locale",
 			params: { locale },
 		});
 	}
 
-	const isBusiness =
+	const _isBusiness =
 		user.accountType === "dealership" ||
 		user.accountType === "workshop" ||
 		user.accountType === "mechanic";
 
 	const navItems = [
 		{
-			label: t.nav.overview,
-			icon: LayoutDashboard,
-			to: "/$locale/_dashboard/dashboard" as const,
+			label: t.nav.overview || "Overview",
+			icon: Home,
+			to: "/$locale/dashboard" as const,
 		},
 		{
-			label: t.nav.myListings,
-			icon: Car,
-			to: "/$locale/_dashboard/dashboard" as const,
+			label: t.nav.myListings || "My Listings",
+			icon: FileText,
+			to: "/$locale/dashboard/listings" as const,
 		},
 		{
-			label: t.nav.messages,
-			icon: MessageSquare,
-			to: "/$locale/_dashboard/dashboard" as const,
-		},
-		{
-			label: t.nav.notifications,
-			icon: Bell,
-			to: "/$locale/_dashboard/dashboard" as const,
-		},
-		{
-			label: t.nav.favorites,
+			label: t.nav.savedSearches || "Saved Searches",
 			icon: Heart,
-			to: "/$locale/_dashboard/dashboard" as const,
+			to: "/$locale/dashboard/saved-searches" as const,
 		},
 		{
-			label: t.nav.savedSearches,
-			icon: Bookmark,
-			to: "/$locale/_dashboard/dashboard" as const,
-		},
-		...(isBusiness
-			? [
-					{
-						label: t.nav.profile,
-						icon: Building2,
-						to: "/$locale/_dashboard/dashboard" as const,
-					},
-				]
-			: []),
-		{
-			label: t.nav.reviews,
-			icon: Star,
-			to: "/$locale/_dashboard/dashboard" as const,
+			label: t.nav.favorites || "Favorite Listings",
+			icon: Heart,
+			to: "/$locale/dashboard/favorites" as const,
 		},
 		{
-			label: t.nav.subscription,
-			icon: CreditCard,
-			to: "/$locale/_dashboard/dashboard" as const,
+			label: t.nav.messages || "Messages",
+			icon: MessageSquare,
+			to: "/$locale/dashboard/messages" as const,
+			badge: 5,
 		},
 		{
-			label: t.common.settings,
+			label: t.nav.notifications || "Notifications",
+			icon: Bell,
+			to: "/$locale/dashboard/notifications" as const,
+			badge: 7,
+		},
+		{
+			label: t.common.settings || "Account Settings",
 			icon: Settings,
-			to: "/$locale/_dashboard/dashboard" as const,
+			to: "/$locale/dashboard/settings" as const,
 		},
 	];
 
 	return (
-		<aside className="w-64 border-e border-border/80 bg-card flex flex-col justify-between shrink-0 min-h-screen">
-			{/* Top: Brand & User Header */}
-			<div>
-				{/* Logo / Home header */}
-				<div className="h-16 px-6 border-b border-border/60 flex items-center justify-between">
-					<Link to="/$locale/_public" params={{ locale }} className="flex items-center gap-2">
-						<img
-							src="/sayaratak-logo.svg"
-							alt="Sayaratak"
-							className="h-7 w-auto object-contain"
-						/>
-					</Link>
-					<LocaleSwitcher />
+		<Sidebar variant="floating">
+			<SidebarHeader className="h-[88px] shrink-0 px-6 border-b border-slate-200 flex flex-col justify-center">
+				<img
+					src="/sayaratak-logo.svg"
+					alt="Sayaratak Logo"
+					className="h-24 w-auto object-contain"
+				/>
+			</SidebarHeader>
+			<SidebarContent className="pt-6">
+				<div className="px-6 mb-4">
+					<h3 className="text-[11px] font-bold text-slate-500 tracking-wider uppercase">
+						My Account
+					</h3>
 				</div>
-
-				{/* User Profile Summary */}
-				<div className="p-4 border-b border-border/60 flex items-center gap-3">
-					<Avatar className="size-10 border border-border">
-						<AvatarImage src={user.image ?? undefined} alt={user.name} />
-						<AvatarFallback className="bg-primary/10 font-semibold text-primary">
-							{user.name?.slice(0, 2).toUpperCase() || "U"}
-						</AvatarFallback>
-					</Avatar>
-					<div className="flex-1 min-w-0">
-						<p className="text-sm font-semibold truncate leading-snug">{user.name}</p>
-						<p className="text-xs text-muted-foreground truncate leading-none mt-0.5">{user.email}</p>
-						{user.accountType && user.accountType !== "user" && (
-							<div className="mt-1">
-								<Badge variant="secondary" className="text-[10px] uppercase font-semibold py-0 px-1.5">
-									{user.accountType}
-								</Badge>
-							</div>
-						)}
+				<SidebarGroup>
+					<SidebarGroupContent>
+						<SidebarMenu className="gap-1 px-3">
+							{navItems.map((item) => {
+								const Icon = item.icon;
+								return (
+									<SidebarMenuItem key={item.label} className="w-full">
+										<Link
+											to={item.to}
+											params={{ locale }}
+											activeOptions={{
+												exact: item.to === "/$locale/dashboard",
+											}}
+											activeProps={{
+												className: "bg-blue-50 text-blue-600 font-semibold",
+											}}
+											inactiveProps={{
+												className:
+													"text-slate-600 font-medium hover:bg-slate-50",
+											}}
+											className="flex items-center w-full h-10 rounded-md px-3 outline-none transition-colors"
+										>
+											<div className="flex items-center gap-3 flex-1">
+												<Icon className="size-[18px] shrink-0" />
+												<span className="text-[13px]">{item.label}</span>
+											</div>
+											{item.badge && (
+												<div className="bg-blue-600 text-white text-[10px] size-5 flex items-center justify-center rounded-full shrink-0 font-bold ml-auto">
+													{item.badge}
+												</div>
+											)}
+										</Link>
+									</SidebarMenuItem>
+								);
+							})}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+			</SidebarContent>
+			<SidebarFooter className="p-4 space-y-4">
+				{/* Stand out and sell faster */}
+				<div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+					<div className="flex items-center gap-3 mb-2">
+						<div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+							<FileText className="size-4" />
+						</div>
+						<h4 className="font-semibold text-sm text-slate-900 leading-tight">
+							Stand out and sell faster
+						</h4>
 					</div>
-				</div>
-
-				{/* Create Listing Button */}
-				<div className="p-4">
-					<Button className="w-full gap-2 font-medium" asChild>
-						<Link to="/$locale/_dashboard/dashboard" params={{ locale }}>
-							<PlusCircle className="size-4" />
-							<span>{t.nav.postAd}</span>
-						</Link>
+					<p className="text-xs text-slate-500 mb-4 leading-relaxed">
+						Promote your listings to get more views and reach serious buyers.
+					</p>
+					<Button
+						className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 h-10 font-medium rounded-lg"
+						size="sm"
+					>
+						<Zap className="size-4" />
+						Promote a Listing
 					</Button>
 				</div>
 
-				{/* Navigation Links */}
-				<nav className="px-3 space-y-1">
-					{navItems.map((item) => {
-						const Icon = item.icon;
-						return (
-							<Link
-								key={item.label}
-								to={item.to}
-								params={{ locale }}
-								className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-								activeProps={{
-									className: "bg-primary/10 text-primary font-semibold hover:bg-primary/15 hover:text-primary",
-								}}
-							>
-								<Icon className="size-4 shrink-0" />
-								<span className="truncate">{item.label}</span>
-							</Link>
-						);
-					})}
-
-					{/* Admin shortcut if user is admin */}
-					{user.role === "admin" && (
-						<Link
-							to="/$locale/_admin/admin"
-							params={{ locale }}
-							className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-amber-600 hover:bg-amber-500/10 transition-colors mt-2"
-						>
-							<ShieldAlert className="size-4 shrink-0" />
-							<span className="truncate">{t.nav.adminPanel}</span>
-						</Link>
-					)}
-				</nav>
-			</div>
-
-			{/* Bottom: Back to marketplace & Logout */}
-			<div className="p-4 border-t border-border/60 space-y-2">
-				<Button
-					variant="ghost"
-					className="w-full justify-start text-muted-foreground hover:text-foreground gap-3 text-sm"
-					asChild
-				>
-					<Link to="/$locale/_public" params={{ locale }}>
-						<Store className="size-4" />
-						<span>{t.nav.backToSite}</span>
+				{/* Need Help */}
+				<div className="rounded-xl bg-transparent p-2">
+					<h4 className="font-semibold text-sm text-slate-900 mb-2">
+						Need Help?
+					</h4>
+					<p className="text-xs text-slate-500 mb-4 leading-relaxed">
+						Check our posting guide or contact our support team.
+					</p>
+					<Link
+						to="/$locale"
+						params={{ locale }}
+						className="text-sm text-blue-600 font-semibold flex items-center gap-1 hover:underline"
+					>
+						View Posting Guide <ArrowRight className="size-4" />
 					</Link>
-				</Button>
-
-				<Button
-					variant="ghost"
-					onClick={handleLogout}
-					className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive gap-3 text-sm"
-				>
-					<LogOut className="size-4" />
-					<span>{t.common.logout}</span>
-				</Button>
-			</div>
-		</aside>
+				</div>
+			</SidebarFooter>
+		</Sidebar>
 	);
 }

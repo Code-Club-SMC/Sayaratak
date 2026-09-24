@@ -32,7 +32,7 @@ beforeAll(async () => {
 		.values({
 			nameEn: "Sudan Share " + uuid,
 			nameAr: "السودان",
-			code: "S" + uuid.slice(0, 1).toUpperCase(),
+			code: "SH_" + uuid,
 		})
 		.returning();
 	testCountryId = country.id;
@@ -99,14 +99,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-	await db.delete(shareLinks).where(eq(shareLinks.targetId, activeListingId));
-	await db.delete(listings).where(eq(listings.id, activeListingId));
-	await db.delete(models).where(eq(models.id, testModelId));
-	await db.delete(makes).where(eq(makes.id, testMakeId));
-	await db.delete(categories).where(eq(categories.id, testCategoryId));
-	await db.delete(cities).where(eq(cities.id, testCityId));
-	await db.delete(countries).where(eq(countries.id, testCountryId));
-	await db.delete(user).where(eq(user.id, testUserId));
+	if (activeListingId) await db.delete(shareLinks).where(eq(shareLinks.targetId, activeListingId));
+	if (activeListingId) await db.delete(listings).where(eq(listings.id, activeListingId));
+	if (testModelId) await db.delete(models).where(eq(models.id, testModelId));
+	if (testMakeId) await db.delete(makes).where(eq(makes.id, testMakeId));
+	if (testCategoryId) await db.delete(categories).where(eq(categories.id, testCategoryId));
+	if (testCityId) await db.delete(cities).where(eq(cities.id, testCityId));
+	if (testCountryId) await db.delete(countries).where(eq(countries.id, testCountryId));
+	if (testUserId) await db.delete(user).where(eq(user.id, testUserId));
 });
 
 describe("Deep-Linking & Social Share API Verification", () => {

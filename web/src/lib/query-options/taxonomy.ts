@@ -7,7 +7,7 @@
  */
 import { queryOptions } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
-import { taxonomyKeys, locationKeys } from "@/lib/query-keys";
+import { locationKeys, taxonomyKeys } from "@/lib/query-keys";
 
 // ── Response types ──────────────────────────────────────────────────────
 
@@ -82,8 +82,7 @@ export function categoriesQueryOptions(locale: string) {
 export function makesQueryOptions(locale: string) {
 	return queryOptions({
 		queryKey: taxonomyKeys.makes(locale),
-		queryFn: () =>
-			apiGet<Make[]>("/api/v1/taxonomy/makes", { locale }),
+		queryFn: () => apiGet<Make[]>("/api/v1/taxonomy/makes", { locale }),
 		staleTime: TAXONOMY_STALE_TIME,
 	});
 }
@@ -104,8 +103,7 @@ export function modelsQueryOptions(locale: string, makeId?: string) {
 export function countriesQueryOptions(locale: string) {
 	return queryOptions({
 		queryKey: locationKeys.countries(locale),
-		queryFn: () =>
-			apiGet<Country[]>("/api/v1/locations/countries", { locale }),
+		queryFn: () => apiGet<Country[]>("/api/v1/locations/countries", { locale }),
 		staleTime: TAXONOMY_STALE_TIME,
 	});
 }

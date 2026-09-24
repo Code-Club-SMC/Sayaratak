@@ -8,15 +8,15 @@
  */
 
 export {
+	DEFAULT_LOCALE,
+	getDirection,
+	isValidLocale,
+	resolveLocale,
+	SUPPORTED_LOCALES,
 	type SupportedLocale,
 	type TextDirection,
-	SUPPORTED_LOCALES,
-	DEFAULT_LOCALE,
-	isValidLocale,
-	getDirection,
-	resolveLocale,
 } from "./locale";
 
-export { dictionaries, type Dictionary } from "./messages";
+export { type Dictionary, dictionaries } from "./messages";
 
 export { useTranslation } from "./use-translation";

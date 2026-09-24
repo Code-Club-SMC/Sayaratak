@@ -12,7 +12,7 @@ bun install
 bun run dev
 ```
 
-Server runs on http://localhost:3001
+Server runs on http://localhost:8000 by default.
 
 ## Database
 
@@ -38,7 +38,7 @@ bun test
 Admins can only be created via a secret-key-gated endpoint. Set `ADMIN_CREATE_SECRET` in `.env`, then:
 
 ```sh
-curl -X POST http://localhost:3001/api/admin/create \
+curl -X POST http://localhost:8000/api/v1/admin/create \
   -H "x-secret-key: $ADMIN_CREATE_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@sayaratak.sd","password":"...","name":"Admin Name"}'
@@ -53,5 +53,5 @@ curl -X POST http://localhost:3001/api/admin/create \
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` — Nodemailer transport
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google OAuth
 - `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` — Facebook OAuth
-- `AWS_REGION`, `AWS_ENDPOINT`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME`, `AWS_PUBLIC_URL` — S3 / Cloudflare R2 for Media Uploads
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` — Cloudinary signed uploads and media cleanup
 - `NODE_ENV`

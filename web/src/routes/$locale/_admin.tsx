@@ -1,10 +1,15 @@
-import { useState } from "react";
-import { createFileRoute, Outlet, redirect, Link } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	redirect,
+} from "@tanstack/react-router";
 import { Menu } from "lucide-react";
+import { useState } from "react";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { authClient } from "@/lib/auth-client";
 import { useTranslation } from "@/lib/i18n";
 
@@ -21,7 +26,7 @@ export const Route = createFileRoute("/$locale/_admin")({
 
 		if (!data?.session || !data?.user) {
 			throw redirect({
-				to: "/$locale/_auth/login",
+				to: "/$locale/login",
 				params: { locale: params.locale },
 				search: { redirect: location.href },
 			});
@@ -30,7 +35,7 @@ export const Route = createFileRoute("/$locale/_admin")({
 		if (data.user.role !== "admin") {
 			// Non-admin authenticated users get sent to the public home
 			throw redirect({
-				to: "/$locale/_public",
+				to: "/$locale",
 				params: { locale: params.locale },
 			});
 		}
@@ -62,15 +67,26 @@ function AdminLayout() {
 					<div className="flex items-center gap-3">
 						<Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
 							<SheetTrigger asChild>
-								<Button variant="ghost" size="icon" aria-label="Open admin navigation">
+								<Button
+									variant="ghost"
+									size="icon"
+									aria-label="Open admin navigation"
+								>
 									<Menu className="size-5" />
 								</Button>
 							</SheetTrigger>
-							<SheetContent side={dir === "rtl" ? "right" : "left"} className="p-0 w-72 bg-slate-950 border-slate-800">
+							<SheetContent
+								side={dir === "rtl" ? "right" : "left"}
+								className="p-0 w-72 bg-slate-950 border-slate-800"
+							>
 								<AdminSidebar adminUser={user} />
 							</SheetContent>
 						</Sheet>
-						<Link to="/$locale/_admin/admin" params={{ locale }} className="flex items-center gap-2">
+						<Link
+							to="/$locale/admin"
+							params={{ locale }}
+							className="flex items-center gap-2"
+						>
 							<img
 								src="/sayaratak-logo.svg"
 								alt="Sayaratak"

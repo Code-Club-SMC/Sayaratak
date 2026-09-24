@@ -1,7 +1,6 @@
 import {
 	ChartNoAxesCombinedIcon,
 	DollarSignIcon,
-	Handshake,
 	HandshakeIcon,
 	HeartPlusIcon,
 	LayoutDashboardIcon,
@@ -14,7 +13,7 @@ import {
 	UserIcon,
 	UserLock,
 } from "lucide-react";
-import type { AccountType, NavItemType, TrustItemsType } from "./types";
+import type { AccountType, NavItemType } from "./types";
 
 export const ACCOUNT_TYPE: AccountType[] = [
 	{
@@ -102,24 +101,24 @@ export const DEALERSHIP_NAV_ITEMS: NavItemType[] = [
 
 export const CITIES = [
 	{
-		id: "peshawar",
-		name: "Peshawar",
-		countryCode: "PK",
+		id: "khartoum",
+		name: "Khartoum",
+		countryCode: "SD",
 	},
 	{
-		id: "islamabad",
-		name: "Islamabad",
-		countryCode: "PK",
+		id: "omdurman",
+		name: "Omdurman",
+		countryCode: "SD",
 	},
 	{
-		id: "lahore",
-		name: "Lahore",
-		countryCode: "PK",
+		id: "bahri",
+		name: "Bahri",
+		countryCode: "SD",
 	},
 	{
-		id: "karachi",
-		name: "Karachi",
-		countryCode: "PK",
+		id: "port-sudan",
+		name: "Port Sudan",
+		countryCode: "SD",
 	},
 ];
 

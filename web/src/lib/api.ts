@@ -65,6 +65,14 @@ function buildUrl(path: string, params?: FetchOptions["params"]): string {
 	return url.toString();
 }
 
+function safeJsonParse(value: string): unknown {
+	try {
+		return JSON.parse(value);
+	} catch {
+		return undefined;
+	}
+}
+
 /**
  * Core fetch function. All API calls go through this.
  */
@@ -72,7 +80,13 @@ export async function api<T>(
 	path: string,
 	options: FetchOptions = {},
 ): Promise<T> {
-	const { locale, body, params, headers: customHeaders, ...fetchOpts } = options;
+	const {
+		locale,
+		body,
+		params,
+		headers: customHeaders,
+		...fetchOpts
+	} = options;
 
 	const headers = new Headers(customHeaders);
 
@@ -98,13 +112,25 @@ export async function api<T>(
 		return undefined as T;
 	}
 
-	const data = await response.json();
+	const text = await response.text();
+	const data = text ? safeJsonParse(text) : undefined;
 
 	if (!response.ok) {
+		const errorObject =
+			data && typeof data === "object" && !Array.isArray(data)
+				? (data as Record<string, unknown>)
+				: {};
+
 		throw new ApiRequestError({
-			error: data.error ?? "An unexpected error occurred",
-			code: data.code ?? "UNKNOWN_ERROR",
-			details: data.details,
+			error:
+				typeof errorObject.error === "string"
+					? errorObject.error
+					: "An unexpected error occurred",
+			code:
+				typeof errorObject.code === "string"
+					? errorObject.code
+					: "UNKNOWN_ERROR",
+			details: errorObject.details,
 			status: response.status,
 		});
 	}
@@ -118,14 +144,23 @@ export async function api<T>(
 export const apiGet = <T>(path: string, options?: FetchOptions) =>
 	api<T>(path, { ...options, method: "GET" });
 
-export const apiPost = <T>(path: string, body?: unknown, options?: FetchOptions) =>
-	api<T>(path, { ...options, method: "POST", body });
+export const apiPost = <T>(
+	path: string,
+	body?: unknown,
+	options?: FetchOptions,
+) => api<T>(path, { ...options, method: "POST", body });
 
-export const apiPut = <T>(path: string, body?: unknown, options?: FetchOptions) =>
-	api<T>(path, { ...options, method: "PUT", body });
+export const apiPut = <T>(
+	path: string,
+	body?: unknown,
+	options?: FetchOptions,
+) => api<T>(path, { ...options, method: "PUT", body });
 
-export const apiPatch = <T>(path: string, body?: unknown, options?: FetchOptions) =>
-	api<T>(path, { ...options, method: "PATCH", body });
+export const apiPatch = <T>(
+	path: string,
+	body?: unknown,
+	options?: FetchOptions,
+) => api<T>(path, { ...options, method: "PATCH", body });
 
 export const apiDelete = <T>(path: string, options?: FetchOptions) =>
 	api<T>(path, { ...options, method: "DELETE" });

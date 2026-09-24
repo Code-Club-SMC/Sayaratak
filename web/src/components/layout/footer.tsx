@@ -13,7 +13,7 @@ export function Footer() {
 				<div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-5">
 					{/* Brand Column */}
 					<div className="space-y-4 lg:col-span-2">
-						<Link to="/$locale/_public" params={{ locale }} className="inline-block">
+						<Link to="/$locale" params={{ locale }} className="inline-block">
 							<img
 								src="/sayaratak-logo.svg"
 								alt="Sayaratak"
@@ -33,7 +33,7 @@ export function Footer() {
 						<ul className="space-y-2 text-sm text-muted-foreground">
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale/listings"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -42,7 +42,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale/dealerships"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -51,7 +51,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale/workshops"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -60,7 +60,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale/mechanics"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -78,7 +78,7 @@ export function Footer() {
 						<ul className="space-y-2 text-sm text-muted-foreground">
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -87,7 +87,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_dashboard/dashboard"
+									to="/$locale/dashboard/listings/new"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -105,7 +105,7 @@ export function Footer() {
 						<ul className="space-y-2 text-sm text-muted-foreground">
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -114,7 +114,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -123,7 +123,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>
@@ -132,7 +132,7 @@ export function Footer() {
 							</li>
 							<li>
 								<Link
-									to="/$locale/_public"
+									to="/$locale"
 									params={{ locale }}
 									className="hover:text-foreground transition-colors"
 								>

@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { DirectionProvider } from "@/components/ui/direction";
 import {
-	isValidLocale,
-	getDirection,
 	DEFAULT_LOCALE,
+	getDirection,
+	isValidLocale,
 	type SupportedLocale,
 	type TextDirection,
 } from "@/lib/i18n";

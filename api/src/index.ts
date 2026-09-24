@@ -61,29 +61,18 @@ app.use("/*", corsMiddleware);
 // 3. i18n Language & Error Localization Middleware
 app.use("/*", i18nMiddleware);
 
+import { handleAppError } from "./lib/errors";
+
 // 3. Global Error Handling
-app.onError((err, c) => {
-	console.error(`[Error] ${err.message}`, err.stack);
-	const locale = c.get('locale') || 'en';
-	return c.json({ error: t("INTERNAL_ERROR", locale), code: "INTERNAL_ERROR" }, 500);
-});
+app.onError(handleAppError);
+
+import { createUserRateLimiter } from "./lib/rate-limiter";
 
 // 4. Rate Limiting Middleware
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const ipRateLimiter = createUserRateLimiter(100);
 const rateLimiter = async (c: any, next: any) => {
 	const ip = c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown";
-	const now = Date.now();
-	const windowMs = 60 * 1000; // 1 minute
-	const limit = 100;
-
-	let record = rateLimitMap.get(ip);
-	if (!record || record.resetAt < now) {
-		record = { count: 0, resetAt: now + windowMs };
-	}
-	record.count++;
-	rateLimitMap.set(ip, record);
-
-	if (record.count > limit) {
+	if (!ipRateLimiter.check(ip)) {
 		return c.json({ error: "Too Many Requests", code: "RATE_LIMIT_EXCEEDED" }, 429);
 	}
 	await next();

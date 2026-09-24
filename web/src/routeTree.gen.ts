@@ -21,6 +21,23 @@ import { Route as LocaleAuthRegisterRouteImport } from './routes/$locale/_auth/r
 import { Route as LocalePublicIndexRouteImport } from './routes/$locale/_public/index'
 import { Route as LocaleAdminAdminIndexRouteImport } from './routes/$locale/_admin/admin/index'
 import { Route as LocaleDashboardDashboardIndexRouteImport } from './routes/$locale/_dashboard/dashboard/index'
+import { Route as LocaleDashboardDashboardFavoritesRouteImport } from './routes/$locale/_dashboard/dashboard/favorites'
+import { Route as LocaleDashboardDashboardListingsRouteImport } from './routes/$locale/_dashboard/dashboard/listings'
+import { Route as LocaleDashboardDashboardMessagesRouteImport } from './routes/$locale/_dashboard/dashboard/messages'
+import { Route as LocaleDashboardDashboardNotificationsRouteImport } from './routes/$locale/_dashboard/dashboard/notifications'
+import { Route as LocaleDashboardDashboardProfileRouteImport } from './routes/$locale/_dashboard/dashboard/profile'
+import { Route as LocaleDashboardDashboardReviewsRouteImport } from './routes/$locale/_dashboard/dashboard/reviews'
+import { Route as LocaleDashboardDashboardSavedSearchesRouteImport } from './routes/$locale/_dashboard/dashboard/saved-searches'
+import { Route as LocaleDashboardDashboardSettingsRouteImport } from './routes/$locale/_dashboard/dashboard/settings'
+import { Route as LocaleDashboardDashboardSubscriptionRouteImport } from './routes/$locale/_dashboard/dashboard/subscription'
+import { Route as LocalePublicDealershipsIndexRouteImport } from './routes/$locale/_public/dealerships/index'
+import { Route as LocalePublicListingsIndexRouteImport } from './routes/$locale/_public/listings/index'
+import { Route as LocalePublicListingsIdRouteImport } from './routes/$locale/_public/listings/$id'
+import { Route as LocalePublicListingsMapRouteImport } from './routes/$locale/_public/listings/map'
+import { Route as LocalePublicMechanicsIndexRouteImport } from './routes/$locale/_public/mechanics/index'
+import { Route as LocalePublicWorkshopsIndexRouteImport } from './routes/$locale/_public/workshops/index'
+import { Route as LocaleDashboardDashboardListingsNewRouteImport } from './routes/$locale/_dashboard/dashboard/listings/new'
+import { Route as LocaleDashboardDashboardListingsIdEditRouteImport } from './routes/$locale/_dashboard/dashboard/listings/$id/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -80,6 +97,106 @@ const LocaleDashboardDashboardIndexRoute =
     path: '/dashboard/',
     getParentRoute: () => LocaleDashboardRoute,
   } as any)
+const LocaleDashboardDashboardFavoritesRoute =
+  LocaleDashboardDashboardFavoritesRouteImport.update({
+    id: '/dashboard/favorites',
+    path: '/dashboard/favorites',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardListingsRoute =
+  LocaleDashboardDashboardListingsRouteImport.update({
+    id: '/dashboard/listings',
+    path: '/dashboard/listings',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardMessagesRoute =
+  LocaleDashboardDashboardMessagesRouteImport.update({
+    id: '/dashboard/messages',
+    path: '/dashboard/messages',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardNotificationsRoute =
+  LocaleDashboardDashboardNotificationsRouteImport.update({
+    id: '/dashboard/notifications',
+    path: '/dashboard/notifications',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardProfileRoute =
+  LocaleDashboardDashboardProfileRouteImport.update({
+    id: '/dashboard/profile',
+    path: '/dashboard/profile',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardReviewsRoute =
+  LocaleDashboardDashboardReviewsRouteImport.update({
+    id: '/dashboard/reviews',
+    path: '/dashboard/reviews',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardSavedSearchesRoute =
+  LocaleDashboardDashboardSavedSearchesRouteImport.update({
+    id: '/dashboard/saved-searches',
+    path: '/dashboard/saved-searches',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardSettingsRoute =
+  LocaleDashboardDashboardSettingsRouteImport.update({
+    id: '/dashboard/settings',
+    path: '/dashboard/settings',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocaleDashboardDashboardSubscriptionRoute =
+  LocaleDashboardDashboardSubscriptionRouteImport.update({
+    id: '/dashboard/subscription',
+    path: '/dashboard/subscription',
+    getParentRoute: () => LocaleDashboardRoute,
+  } as any)
+const LocalePublicDealershipsIndexRoute =
+  LocalePublicDealershipsIndexRouteImport.update({
+    id: '/dealerships/',
+    path: '/dealerships/',
+    getParentRoute: () => LocalePublicRoute,
+  } as any)
+const LocalePublicListingsIndexRoute =
+  LocalePublicListingsIndexRouteImport.update({
+    id: '/listings/',
+    path: '/listings/',
+    getParentRoute: () => LocalePublicRoute,
+  } as any)
+const LocalePublicListingsIdRoute = LocalePublicListingsIdRouteImport.update({
+  id: '/listings/$id',
+  path: '/listings/$id',
+  getParentRoute: () => LocalePublicRoute,
+} as any)
+const LocalePublicListingsMapRoute = LocalePublicListingsMapRouteImport.update({
+  id: '/listings/map',
+  path: '/listings/map',
+  getParentRoute: () => LocalePublicRoute,
+} as any)
+const LocalePublicMechanicsIndexRoute =
+  LocalePublicMechanicsIndexRouteImport.update({
+    id: '/mechanics/',
+    path: '/mechanics/',
+    getParentRoute: () => LocalePublicRoute,
+  } as any)
+const LocalePublicWorkshopsIndexRoute =
+  LocalePublicWorkshopsIndexRouteImport.update({
+    id: '/workshops/',
+    path: '/workshops/',
+    getParentRoute: () => LocalePublicRoute,
+  } as any)
+const LocaleDashboardDashboardListingsNewRoute =
+  LocaleDashboardDashboardListingsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => LocaleDashboardDashboardListingsRoute,
+  } as any)
+const LocaleDashboardDashboardListingsIdEditRoute =
+  LocaleDashboardDashboardListingsIdEditRouteImport.update({
+    id: '/$id/edit',
+    path: '/$id/edit',
+    getParentRoute: () => LocaleDashboardDashboardListingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,8 +205,25 @@ export interface FileRoutesByFullPath {
   '/$locale/login': typeof LocaleAuthLoginRoute
   '/$locale/register': typeof LocaleAuthRegisterRoute
   '/$locale/': typeof LocalePublicIndexRoute
+  '/$locale/dashboard/favorites': typeof LocaleDashboardDashboardFavoritesRoute
+  '/$locale/dashboard/listings': typeof LocaleDashboardDashboardListingsRouteWithChildren
+  '/$locale/dashboard/messages': typeof LocaleDashboardDashboardMessagesRoute
+  '/$locale/dashboard/notifications': typeof LocaleDashboardDashboardNotificationsRoute
+  '/$locale/dashboard/profile': typeof LocaleDashboardDashboardProfileRoute
+  '/$locale/dashboard/reviews': typeof LocaleDashboardDashboardReviewsRoute
+  '/$locale/dashboard/saved-searches': typeof LocaleDashboardDashboardSavedSearchesRoute
+  '/$locale/dashboard/settings': typeof LocaleDashboardDashboardSettingsRoute
+  '/$locale/dashboard/subscription': typeof LocaleDashboardDashboardSubscriptionRoute
+  '/$locale/listings/$id': typeof LocalePublicListingsIdRoute
+  '/$locale/listings/map': typeof LocalePublicListingsMapRoute
   '/$locale/admin/': typeof LocaleAdminAdminIndexRoute
   '/$locale/dashboard/': typeof LocaleDashboardDashboardIndexRoute
+  '/$locale/dealerships/': typeof LocalePublicDealershipsIndexRoute
+  '/$locale/listings/': typeof LocalePublicListingsIndexRoute
+  '/$locale/mechanics/': typeof LocalePublicMechanicsIndexRoute
+  '/$locale/workshops/': typeof LocalePublicWorkshopsIndexRoute
+  '/$locale/dashboard/listings/new': typeof LocaleDashboardDashboardListingsNewRoute
+  '/$locale/dashboard/listings/$id/edit': typeof LocaleDashboardDashboardListingsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -97,8 +231,25 @@ export interface FileRoutesByTo {
   '/$locale/forgot-password': typeof LocaleAuthForgotPasswordRoute
   '/$locale/login': typeof LocaleAuthLoginRoute
   '/$locale/register': typeof LocaleAuthRegisterRoute
+  '/$locale/dashboard/favorites': typeof LocaleDashboardDashboardFavoritesRoute
+  '/$locale/dashboard/listings': typeof LocaleDashboardDashboardListingsRouteWithChildren
+  '/$locale/dashboard/messages': typeof LocaleDashboardDashboardMessagesRoute
+  '/$locale/dashboard/notifications': typeof LocaleDashboardDashboardNotificationsRoute
+  '/$locale/dashboard/profile': typeof LocaleDashboardDashboardProfileRoute
+  '/$locale/dashboard/reviews': typeof LocaleDashboardDashboardReviewsRoute
+  '/$locale/dashboard/saved-searches': typeof LocaleDashboardDashboardSavedSearchesRoute
+  '/$locale/dashboard/settings': typeof LocaleDashboardDashboardSettingsRoute
+  '/$locale/dashboard/subscription': typeof LocaleDashboardDashboardSubscriptionRoute
+  '/$locale/listings/$id': typeof LocalePublicListingsIdRoute
+  '/$locale/listings/map': typeof LocalePublicListingsMapRoute
   '/$locale/admin': typeof LocaleAdminAdminIndexRoute
   '/$locale/dashboard': typeof LocaleDashboardDashboardIndexRoute
+  '/$locale/dealerships': typeof LocalePublicDealershipsIndexRoute
+  '/$locale/listings': typeof LocalePublicListingsIndexRoute
+  '/$locale/mechanics': typeof LocalePublicMechanicsIndexRoute
+  '/$locale/workshops': typeof LocalePublicWorkshopsIndexRoute
+  '/$locale/dashboard/listings/new': typeof LocaleDashboardDashboardListingsNewRoute
+  '/$locale/dashboard/listings/$id/edit': typeof LocaleDashboardDashboardListingsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,8 +263,25 @@ export interface FileRoutesById {
   '/$locale/_auth/login': typeof LocaleAuthLoginRoute
   '/$locale/_auth/register': typeof LocaleAuthRegisterRoute
   '/$locale/_public/': typeof LocalePublicIndexRoute
+  '/$locale/_dashboard/dashboard/favorites': typeof LocaleDashboardDashboardFavoritesRoute
+  '/$locale/_dashboard/dashboard/listings': typeof LocaleDashboardDashboardListingsRouteWithChildren
+  '/$locale/_dashboard/dashboard/messages': typeof LocaleDashboardDashboardMessagesRoute
+  '/$locale/_dashboard/dashboard/notifications': typeof LocaleDashboardDashboardNotificationsRoute
+  '/$locale/_dashboard/dashboard/profile': typeof LocaleDashboardDashboardProfileRoute
+  '/$locale/_dashboard/dashboard/reviews': typeof LocaleDashboardDashboardReviewsRoute
+  '/$locale/_dashboard/dashboard/saved-searches': typeof LocaleDashboardDashboardSavedSearchesRoute
+  '/$locale/_dashboard/dashboard/settings': typeof LocaleDashboardDashboardSettingsRoute
+  '/$locale/_dashboard/dashboard/subscription': typeof LocaleDashboardDashboardSubscriptionRoute
+  '/$locale/_public/listings/$id': typeof LocalePublicListingsIdRoute
+  '/$locale/_public/listings/map': typeof LocalePublicListingsMapRoute
   '/$locale/_admin/admin/': typeof LocaleAdminAdminIndexRoute
   '/$locale/_dashboard/dashboard/': typeof LocaleDashboardDashboardIndexRoute
+  '/$locale/_public/dealerships/': typeof LocalePublicDealershipsIndexRoute
+  '/$locale/_public/listings/': typeof LocalePublicListingsIndexRoute
+  '/$locale/_public/mechanics/': typeof LocalePublicMechanicsIndexRoute
+  '/$locale/_public/workshops/': typeof LocalePublicWorkshopsIndexRoute
+  '/$locale/_dashboard/dashboard/listings/new': typeof LocaleDashboardDashboardListingsNewRoute
+  '/$locale/_dashboard/dashboard/listings/$id/edit': typeof LocaleDashboardDashboardListingsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,8 +292,25 @@ export interface FileRouteTypes {
     | '/$locale/login'
     | '/$locale/register'
     | '/$locale/'
+    | '/$locale/dashboard/favorites'
+    | '/$locale/dashboard/listings'
+    | '/$locale/dashboard/messages'
+    | '/$locale/dashboard/notifications'
+    | '/$locale/dashboard/profile'
+    | '/$locale/dashboard/reviews'
+    | '/$locale/dashboard/saved-searches'
+    | '/$locale/dashboard/settings'
+    | '/$locale/dashboard/subscription'
+    | '/$locale/listings/$id'
+    | '/$locale/listings/map'
     | '/$locale/admin/'
     | '/$locale/dashboard/'
+    | '/$locale/dealerships/'
+    | '/$locale/listings/'
+    | '/$locale/mechanics/'
+    | '/$locale/workshops/'
+    | '/$locale/dashboard/listings/new'
+    | '/$locale/dashboard/listings/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,8 +318,25 @@ export interface FileRouteTypes {
     | '/$locale/forgot-password'
     | '/$locale/login'
     | '/$locale/register'
+    | '/$locale/dashboard/favorites'
+    | '/$locale/dashboard/listings'
+    | '/$locale/dashboard/messages'
+    | '/$locale/dashboard/notifications'
+    | '/$locale/dashboard/profile'
+    | '/$locale/dashboard/reviews'
+    | '/$locale/dashboard/saved-searches'
+    | '/$locale/dashboard/settings'
+    | '/$locale/dashboard/subscription'
+    | '/$locale/listings/$id'
+    | '/$locale/listings/map'
     | '/$locale/admin'
     | '/$locale/dashboard'
+    | '/$locale/dealerships'
+    | '/$locale/listings'
+    | '/$locale/mechanics'
+    | '/$locale/workshops'
+    | '/$locale/dashboard/listings/new'
+    | '/$locale/dashboard/listings/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -147,8 +349,25 @@ export interface FileRouteTypes {
     | '/$locale/_auth/login'
     | '/$locale/_auth/register'
     | '/$locale/_public/'
+    | '/$locale/_dashboard/dashboard/favorites'
+    | '/$locale/_dashboard/dashboard/listings'
+    | '/$locale/_dashboard/dashboard/messages'
+    | '/$locale/_dashboard/dashboard/notifications'
+    | '/$locale/_dashboard/dashboard/profile'
+    | '/$locale/_dashboard/dashboard/reviews'
+    | '/$locale/_dashboard/dashboard/saved-searches'
+    | '/$locale/_dashboard/dashboard/settings'
+    | '/$locale/_dashboard/dashboard/subscription'
+    | '/$locale/_public/listings/$id'
+    | '/$locale/_public/listings/map'
     | '/$locale/_admin/admin/'
     | '/$locale/_dashboard/dashboard/'
+    | '/$locale/_public/dealerships/'
+    | '/$locale/_public/listings/'
+    | '/$locale/_public/mechanics/'
+    | '/$locale/_public/workshops/'
+    | '/$locale/_dashboard/dashboard/listings/new'
+    | '/$locale/_dashboard/dashboard/listings/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +461,125 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleDashboardDashboardIndexRouteImport
       parentRoute: typeof LocaleDashboardRoute
     }
+    '/$locale/_dashboard/dashboard/favorites': {
+      id: '/$locale/_dashboard/dashboard/favorites'
+      path: '/dashboard/favorites'
+      fullPath: '/$locale/dashboard/favorites'
+      preLoaderRoute: typeof LocaleDashboardDashboardFavoritesRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/listings': {
+      id: '/$locale/_dashboard/dashboard/listings'
+      path: '/dashboard/listings'
+      fullPath: '/$locale/dashboard/listings'
+      preLoaderRoute: typeof LocaleDashboardDashboardListingsRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/messages': {
+      id: '/$locale/_dashboard/dashboard/messages'
+      path: '/dashboard/messages'
+      fullPath: '/$locale/dashboard/messages'
+      preLoaderRoute: typeof LocaleDashboardDashboardMessagesRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/notifications': {
+      id: '/$locale/_dashboard/dashboard/notifications'
+      path: '/dashboard/notifications'
+      fullPath: '/$locale/dashboard/notifications'
+      preLoaderRoute: typeof LocaleDashboardDashboardNotificationsRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/profile': {
+      id: '/$locale/_dashboard/dashboard/profile'
+      path: '/dashboard/profile'
+      fullPath: '/$locale/dashboard/profile'
+      preLoaderRoute: typeof LocaleDashboardDashboardProfileRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/reviews': {
+      id: '/$locale/_dashboard/dashboard/reviews'
+      path: '/dashboard/reviews'
+      fullPath: '/$locale/dashboard/reviews'
+      preLoaderRoute: typeof LocaleDashboardDashboardReviewsRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/saved-searches': {
+      id: '/$locale/_dashboard/dashboard/saved-searches'
+      path: '/dashboard/saved-searches'
+      fullPath: '/$locale/dashboard/saved-searches'
+      preLoaderRoute: typeof LocaleDashboardDashboardSavedSearchesRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/settings': {
+      id: '/$locale/_dashboard/dashboard/settings'
+      path: '/dashboard/settings'
+      fullPath: '/$locale/dashboard/settings'
+      preLoaderRoute: typeof LocaleDashboardDashboardSettingsRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_dashboard/dashboard/subscription': {
+      id: '/$locale/_dashboard/dashboard/subscription'
+      path: '/dashboard/subscription'
+      fullPath: '/$locale/dashboard/subscription'
+      preLoaderRoute: typeof LocaleDashboardDashboardSubscriptionRouteImport
+      parentRoute: typeof LocaleDashboardRoute
+    }
+    '/$locale/_public/dealerships/': {
+      id: '/$locale/_public/dealerships/'
+      path: '/dealerships'
+      fullPath: '/$locale/dealerships/'
+      preLoaderRoute: typeof LocalePublicDealershipsIndexRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_public/listings/': {
+      id: '/$locale/_public/listings/'
+      path: '/listings'
+      fullPath: '/$locale/listings/'
+      preLoaderRoute: typeof LocalePublicListingsIndexRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_public/listings/$id': {
+      id: '/$locale/_public/listings/$id'
+      path: '/listings/$id'
+      fullPath: '/$locale/listings/$id'
+      preLoaderRoute: typeof LocalePublicListingsIdRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_public/listings/map': {
+      id: '/$locale/_public/listings/map'
+      path: '/listings/map'
+      fullPath: '/$locale/listings/map'
+      preLoaderRoute: typeof LocalePublicListingsMapRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_public/mechanics/': {
+      id: '/$locale/_public/mechanics/'
+      path: '/mechanics'
+      fullPath: '/$locale/mechanics/'
+      preLoaderRoute: typeof LocalePublicMechanicsIndexRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_public/workshops/': {
+      id: '/$locale/_public/workshops/'
+      path: '/workshops'
+      fullPath: '/$locale/workshops/'
+      preLoaderRoute: typeof LocalePublicWorkshopsIndexRouteImport
+      parentRoute: typeof LocalePublicRoute
+    }
+    '/$locale/_dashboard/dashboard/listings/new': {
+      id: '/$locale/_dashboard/dashboard/listings/new'
+      path: '/new'
+      fullPath: '/$locale/dashboard/listings/new'
+      preLoaderRoute: typeof LocaleDashboardDashboardListingsNewRouteImport
+      parentRoute: typeof LocaleDashboardDashboardListingsRoute
+    }
+    '/$locale/_dashboard/dashboard/listings/$id/edit': {
+      id: '/$locale/_dashboard/dashboard/listings/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/$locale/dashboard/listings/$id/edit'
+      preLoaderRoute: typeof LocaleDashboardDashboardListingsIdEditRouteImport
+      parentRoute: typeof LocaleDashboardDashboardListingsRoute
+    }
   }
 }
 
@@ -273,11 +611,52 @@ const LocaleAuthRouteWithChildren = LocaleAuthRoute._addFileChildren(
   LocaleAuthRouteChildren,
 )
 
+interface LocaleDashboardDashboardListingsRouteChildren {
+  LocaleDashboardDashboardListingsNewRoute: typeof LocaleDashboardDashboardListingsNewRoute
+  LocaleDashboardDashboardListingsIdEditRoute: typeof LocaleDashboardDashboardListingsIdEditRoute
+}
+
+const LocaleDashboardDashboardListingsRouteChildren: LocaleDashboardDashboardListingsRouteChildren =
+  {
+    LocaleDashboardDashboardListingsNewRoute:
+      LocaleDashboardDashboardListingsNewRoute,
+    LocaleDashboardDashboardListingsIdEditRoute:
+      LocaleDashboardDashboardListingsIdEditRoute,
+  }
+
+const LocaleDashboardDashboardListingsRouteWithChildren =
+  LocaleDashboardDashboardListingsRoute._addFileChildren(
+    LocaleDashboardDashboardListingsRouteChildren,
+  )
+
 interface LocaleDashboardRouteChildren {
+  LocaleDashboardDashboardFavoritesRoute: typeof LocaleDashboardDashboardFavoritesRoute
+  LocaleDashboardDashboardListingsRoute: typeof LocaleDashboardDashboardListingsRouteWithChildren
+  LocaleDashboardDashboardMessagesRoute: typeof LocaleDashboardDashboardMessagesRoute
+  LocaleDashboardDashboardNotificationsRoute: typeof LocaleDashboardDashboardNotificationsRoute
+  LocaleDashboardDashboardProfileRoute: typeof LocaleDashboardDashboardProfileRoute
+  LocaleDashboardDashboardReviewsRoute: typeof LocaleDashboardDashboardReviewsRoute
+  LocaleDashboardDashboardSavedSearchesRoute: typeof LocaleDashboardDashboardSavedSearchesRoute
+  LocaleDashboardDashboardSettingsRoute: typeof LocaleDashboardDashboardSettingsRoute
+  LocaleDashboardDashboardSubscriptionRoute: typeof LocaleDashboardDashboardSubscriptionRoute
   LocaleDashboardDashboardIndexRoute: typeof LocaleDashboardDashboardIndexRoute
 }
 
 const LocaleDashboardRouteChildren: LocaleDashboardRouteChildren = {
+  LocaleDashboardDashboardFavoritesRoute:
+    LocaleDashboardDashboardFavoritesRoute,
+  LocaleDashboardDashboardListingsRoute:
+    LocaleDashboardDashboardListingsRouteWithChildren,
+  LocaleDashboardDashboardMessagesRoute: LocaleDashboardDashboardMessagesRoute,
+  LocaleDashboardDashboardNotificationsRoute:
+    LocaleDashboardDashboardNotificationsRoute,
+  LocaleDashboardDashboardProfileRoute: LocaleDashboardDashboardProfileRoute,
+  LocaleDashboardDashboardReviewsRoute: LocaleDashboardDashboardReviewsRoute,
+  LocaleDashboardDashboardSavedSearchesRoute:
+    LocaleDashboardDashboardSavedSearchesRoute,
+  LocaleDashboardDashboardSettingsRoute: LocaleDashboardDashboardSettingsRoute,
+  LocaleDashboardDashboardSubscriptionRoute:
+    LocaleDashboardDashboardSubscriptionRoute,
   LocaleDashboardDashboardIndexRoute: LocaleDashboardDashboardIndexRoute,
 }
 
@@ -287,10 +666,22 @@ const LocaleDashboardRouteWithChildren = LocaleDashboardRoute._addFileChildren(
 
 interface LocalePublicRouteChildren {
   LocalePublicIndexRoute: typeof LocalePublicIndexRoute
+  LocalePublicListingsIdRoute: typeof LocalePublicListingsIdRoute
+  LocalePublicListingsMapRoute: typeof LocalePublicListingsMapRoute
+  LocalePublicDealershipsIndexRoute: typeof LocalePublicDealershipsIndexRoute
+  LocalePublicListingsIndexRoute: typeof LocalePublicListingsIndexRoute
+  LocalePublicMechanicsIndexRoute: typeof LocalePublicMechanicsIndexRoute
+  LocalePublicWorkshopsIndexRoute: typeof LocalePublicWorkshopsIndexRoute
 }
 
 const LocalePublicRouteChildren: LocalePublicRouteChildren = {
   LocalePublicIndexRoute: LocalePublicIndexRoute,
+  LocalePublicListingsIdRoute: LocalePublicListingsIdRoute,
+  LocalePublicListingsMapRoute: LocalePublicListingsMapRoute,
+  LocalePublicDealershipsIndexRoute: LocalePublicDealershipsIndexRoute,
+  LocalePublicListingsIndexRoute: LocalePublicListingsIndexRoute,
+  LocalePublicMechanicsIndexRoute: LocalePublicMechanicsIndexRoute,
+  LocalePublicWorkshopsIndexRoute: LocalePublicWorkshopsIndexRoute,
 }
 
 const LocalePublicRouteWithChildren = LocalePublicRoute._addFileChildren(

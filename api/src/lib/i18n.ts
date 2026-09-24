@@ -52,7 +52,10 @@ export function getFieldLabel(field: string, locale: SupportedLocale): string {
 // -------------------------------------------------------------
 // 2. Interpolation Helper
 // -------------------------------------------------------------
-export function interpolate(template: string, params?: Record<string, string | number>): string {
+export function interpolate(
+	template: string,
+	params?: Record<string, string | number>,
+): string {
 	if (!params) return template;
 	return template.replace(/\{(\w+)\}/g, (_, key) => {
 		return params[key] !== undefined ? String(params[key]) : `{${key}}`;
@@ -317,20 +320,56 @@ REVERSE_STRING_MAP.set("unauthorized", ERROR_DICTIONARY.UNAUTHORIZED);
 REVERSE_STRING_MAP.set("forbidden", ERROR_DICTIONARY.FORBIDDEN);
 REVERSE_STRING_MAP.set("not found", ERROR_DICTIONARY.NOT_FOUND);
 REVERSE_STRING_MAP.set("listing not found", ERROR_DICTIONARY.LISTING_NOT_FOUND);
-REVERSE_STRING_MAP.set("listing is no longer available", ERROR_DICTIONARY.LISTING_UNAVAILABLE);
-REVERSE_STRING_MAP.set("dealership not found", ERROR_DICTIONARY.DEALERSHIP_NOT_FOUND);
-REVERSE_STRING_MAP.set("workshop not found", ERROR_DICTIONARY.WORKSHOP_NOT_FOUND);
-REVERSE_STRING_MAP.set("mechanic not found", ERROR_DICTIONARY.MECHANIC_NOT_FOUND);
+REVERSE_STRING_MAP.set(
+	"listing is no longer available",
+	ERROR_DICTIONARY.LISTING_UNAVAILABLE,
+);
+REVERSE_STRING_MAP.set(
+	"dealership not found",
+	ERROR_DICTIONARY.DEALERSHIP_NOT_FOUND,
+);
+REVERSE_STRING_MAP.set(
+	"workshop not found",
+	ERROR_DICTIONARY.WORKSHOP_NOT_FOUND,
+);
+REVERSE_STRING_MAP.set(
+	"mechanic not found",
+	ERROR_DICTIONARY.MECHANIC_NOT_FOUND,
+);
 REVERSE_STRING_MAP.set("page not found", ERROR_DICTIONARY.PAGE_NOT_FOUND);
 REVERSE_STRING_MAP.set("too many requests", ERROR_DICTIONARY.TOO_MANY_REQUESTS);
-REVERSE_STRING_MAP.set("too many requests. signature rate limit exceeded.", ERROR_DICTIONARY.RATE_LIMIT_SIGNATURE);
-REVERSE_STRING_MAP.set("forbidden: you do not own this listing", ERROR_DICTIONARY.FORBIDDEN_LISTING_OWNER);
-REVERSE_STRING_MAP.set("forbidden: you can only upload to your own profile", ERROR_DICTIONARY.FORBIDDEN_PROFILE_OWNER);
-REVERSE_STRING_MAP.set("forbidden: admin role required for cms assets", ERROR_DICTIONARY.ADMIN_REQUIRED);
-REVERSE_STRING_MAP.set("forbidden: admin role required", ERROR_DICTIONARY.ADMIN_REQUIRED);
-REVERSE_STRING_MAP.set("this page cannot be deleted. deactivate it instead.", ERROR_DICTIONARY.CANNOT_DELETE_PROTECTED_PAGE);
-REVERSE_STRING_MAP.set("a page with this slug already exists", ERROR_DICTIONARY.SLUG_ALREADY_EXISTS);
-REVERSE_STRING_MAP.set("listing limit reached. please upgrade your subscription.", ERROR_DICTIONARY.LISTING_LIMIT_REACHED);
+REVERSE_STRING_MAP.set(
+	"too many requests. signature rate limit exceeded.",
+	ERROR_DICTIONARY.RATE_LIMIT_SIGNATURE,
+);
+REVERSE_STRING_MAP.set(
+	"forbidden: you do not own this listing",
+	ERROR_DICTIONARY.FORBIDDEN_LISTING_OWNER,
+);
+REVERSE_STRING_MAP.set(
+	"forbidden: you can only upload to your own profile",
+	ERROR_DICTIONARY.FORBIDDEN_PROFILE_OWNER,
+);
+REVERSE_STRING_MAP.set(
+	"forbidden: admin role required for cms assets",
+	ERROR_DICTIONARY.ADMIN_REQUIRED,
+);
+REVERSE_STRING_MAP.set(
+	"forbidden: admin role required",
+	ERROR_DICTIONARY.ADMIN_REQUIRED,
+);
+REVERSE_STRING_MAP.set(
+	"this page cannot be deleted. deactivate it instead.",
+	ERROR_DICTIONARY.CANNOT_DELETE_PROTECTED_PAGE,
+);
+REVERSE_STRING_MAP.set(
+	"a page with this slug already exists",
+	ERROR_DICTIONARY.SLUG_ALREADY_EXISTS,
+);
+REVERSE_STRING_MAP.set(
+	"listing limit reached. please upgrade your subscription.",
+	ERROR_DICTIONARY.LISTING_LIMIT_REACHED,
+);
 
 /**
  * Parses request to determine preferred locale.
@@ -339,7 +378,10 @@ REVERSE_STRING_MAP.set("listing limit reached. please upgrade your subscription.
  * 2. Accept-Language header (RFC 9110 / RFC 4647 with q-factor weighting)
  * 3. Default fallback: 'en'
  */
-export function resolveLocale(req: { header: (name: string) => string | undefined; query: (name: string) => string | undefined }): SupportedLocale {
+export function resolveLocale(req: {
+	header: (name: string) => string | undefined;
+	query: (name: string) => string | undefined;
+}): SupportedLocale {
 	// 1. Query parameter override
 	const queryLang = req.query("lang") || req.query("locale");
 	if (queryLang) {
@@ -351,13 +393,16 @@ export function resolveLocale(req: { header: (name: string) => string | undefine
 	// 2. Accept-Language header parsing
 	const acceptLang = req.header("accept-language");
 	if (acceptLang) {
-		const parts = acceptLang.split(",").map((part) => {
-			const [tag, qVal] = part.trim().split(";q=");
-			return {
-				tag: tag.trim().toLowerCase(),
-				q: qVal ? parseFloat(qVal) : 1.0,
-			};
-		}).filter((item) => !isNaN(item.q) && item.q > 0);
+		const parts = acceptLang
+			.split(",")
+			.map((part) => {
+				const [tag, qVal] = part.trim().split(";q=");
+				return {
+					tag: tag.trim().toLowerCase(),
+					q: qVal ? parseFloat(qVal) : 1.0,
+				};
+			})
+			.filter((item) => !isNaN(item.q) && item.q > 0);
 
 		// Sort by q-value descending
 		parts.sort((a, b) => b.q - a.q);
@@ -379,17 +424,22 @@ export function resolveLocale(req: { header: (name: string) => string | undefine
 export function localizeError(
 	rawError: string,
 	locale: SupportedLocale,
-	params?: Record<string, string | number>
+	params?: Record<string, string | number>,
 ): { error: string; code: string } {
 	if (!rawError || typeof rawError !== "string") {
 		return {
-			error: locale === "ar" ? ERROR_DICTIONARY.INTERNAL_SERVER_ERROR.ar : ERROR_DICTIONARY.INTERNAL_SERVER_ERROR.en,
+			error:
+				locale === "ar"
+					? ERROR_DICTIONARY.INTERNAL_SERVER_ERROR.ar
+					: ERROR_DICTIONARY.INTERNAL_SERVER_ERROR.en,
 			code: "INTERNAL_SERVER_ERROR",
 		};
 	}
 
 	const normalized = rawError.toLowerCase().trim();
-	const def = REVERSE_STRING_MAP.get(normalized) || ERROR_DICTIONARY[rawError.toUpperCase()];
+	const def =
+		REVERSE_STRING_MAP.get(normalized) ||
+		ERROR_DICTIONARY[rawError.toUpperCase()];
 
 	if (def) {
 		const baseText = locale === "ar" ? def.ar : def.en;
@@ -400,11 +450,16 @@ export function localizeError(
 	}
 
 	// Dynamic regex pattern matches
-	const slugMatch = rawError.match(/^a page with this slug ['"]?(.+?)['"]? already exists$/i);
+	const slugMatch = rawError.match(
+		/^a page with this slug ['"]?(.+?)['"]? already exists$/i,
+	);
 	if (slugMatch) {
 		const slugVal = slugMatch[1];
 		return {
-			error: locale === "ar" ? `يوجد صفحة أخرى تستخدم الرابط '${slugVal}' بالفعل` : rawError,
+			error:
+				locale === "ar"
+					? `يوجد صفحة أخرى تستخدم الرابط '${slugVal}' بالفعل`
+					: rawError,
 			code: "SLUG_ALREADY_EXISTS",
 		};
 	}
@@ -413,16 +468,20 @@ export function localizeError(
 	if (seoMatch) {
 		const typeVal = seoMatch[1];
 		return {
-			error: locale === "ar" ? `نوع كيان محركات البحث غير صالح: ${typeVal}` : rawError,
+			error:
+				locale === "ar"
+					? `نوع كيان محركات البحث غير صالح: ${typeVal}`
+					: rawError,
 			code: "INVALID_SEO_TYPE",
 		};
 	}
 
 	// Default fallback with code generated from string
-	const fallbackCode = rawError
-		.toUpperCase()
-		.replace(/[^A-Z0-9]+/g, "_")
-		.replace(/^_+|_+$/g, "") || "UNKNOWN_ERROR";
+	const fallbackCode =
+		rawError
+			.toUpperCase()
+			.replace(/[^A-Z0-9]+/g, "_")
+			.replace(/^_+|_+$/g, "") || "UNKNOWN_ERROR";
 
 	return {
 		error: interpolate(rawError, params),
@@ -452,8 +511,12 @@ export type ZodIssueLike = {
 /**
  * Localizes a single Zod issue object into a human-friendly sentence.
  */
-export function localizeZodIssue(issue: ZodIssueLike, locale: SupportedLocale): { field: string; message: string; code: string } {
-	const field = issue.path.length > 0 ? String(issue.path[issue.path.length - 1]) : "value";
+export function localizeZodIssue(
+	issue: ZodIssueLike,
+	locale: SupportedLocale,
+): { field: string; message: string; code: string } {
+	const field =
+		issue.path.length > 0 ? String(issue.path[issue.path.length - 1]) : "value";
 	const label = getFieldLabel(field, locale);
 
 	let localizedMessage = issue.message || "Invalid value";
@@ -461,9 +524,15 @@ export function localizeZodIssue(issue: ZodIssueLike, locale: SupportedLocale): 
 	switch (issue.code) {
 		case "invalid_type":
 			if (issue.received === "undefined") {
-				localizedMessage = locale === "ar" ? `حقل '${label}' مطلوب` : `Field '${label}' is required`;
+				localizedMessage =
+					locale === "ar"
+						? `حقل '${label}' مطلوب`
+						: `Field '${label}' is required`;
 			} else {
-				localizedMessage = locale === "ar" ? `نوع البيانات المدخلة في '${label}' غير صالح` : `Invalid type for field '${label}'`;
+				localizedMessage =
+					locale === "ar"
+						? `نوع البيانات المدخلة في '${label}' غير صالح`
+						: `Invalid type for field '${label}'`;
 			}
 			break;
 
@@ -498,7 +567,10 @@ export function localizeZodIssue(issue: ZodIssueLike, locale: SupportedLocale): 
 		case "invalid_format":
 		case "invalid_string":
 			if (issue.validation === "email" || issue.format === "email") {
-				localizedMessage = locale === "ar" ? `صيغة البريد الإلكتروني غير صالحة` : `Invalid email address`;
+				localizedMessage =
+					locale === "ar"
+						? `صيغة البريد الإلكتروني غير صالحة`
+						: `Invalid email address`;
 			} else if (issue.validation === "regex" || issue.format === "regex") {
 				if (field === "slug") {
 					localizedMessage =
@@ -506,18 +578,22 @@ export function localizeZodIssue(issue: ZodIssueLike, locale: SupportedLocale): 
 							? `يجب أن يحتوي الرابط على أحرف إنجليزية صغيرة وأرقام وشرطات فقط`
 							: `Slug must contain only lowercase alphanumeric characters and hyphens`;
 				} else {
-					localizedMessage = locale === "ar" ? `صيغة حقل '${label}' غير صالحة` : `Invalid format for '${label}'`;
+					localizedMessage =
+						locale === "ar"
+							? `صيغة حقل '${label}' غير صالحة`
+							: `Invalid format for '${label}'`;
 				}
 			}
 			break;
 
-		case "invalid_enum_value":
+		case "invalid_enum_value": {
 			const opts = issue.options ? issue.options.join(", ") : "";
 			localizedMessage =
 				locale === "ar"
 					? `القيمة المدخلة في '${label}' غير صالحة. الخيارات المتاحة: ${opts}`
 					: `Invalid value for '${label}'. Allowed options: ${opts}`;
 			break;
+		}
 
 		case "custom":
 			if (issue.message) {
@@ -539,9 +615,15 @@ export function localizeZodIssue(issue: ZodIssueLike, locale: SupportedLocale): 
  */
 export function formatZodValidationErrors(
 	issues: ZodIssueLike[],
-	locale: SupportedLocale
-): { error: string; code: string; details: Array<{ field: string; message: string; code: string }> } {
-	const localizedDetails = issues.map((issue) => localizeZodIssue(issue, locale));
+	locale: SupportedLocale,
+): {
+	error: string;
+	code: string;
+	details: Array<{ field: string; message: string; code: string }>;
+} {
+	const localizedDetails = issues.map((issue) =>
+		localizeZodIssue(issue, locale),
+	);
 	const primaryMessage =
 		locale === "ar"
 			? `خطأ في التحقق من صحة البيانات: ${localizedDetails[0]?.message || "مدخلات غير صالحة"}`

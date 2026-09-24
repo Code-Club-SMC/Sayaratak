@@ -36,7 +36,7 @@ describe("Chat & Messaging Endpoints", () => {
 		]);
 
 		const [country] = await db.insert(countries).values({
-			nameEn: "Sudan " + uuid, nameAr: "السودان", code: "C" + uuid.slice(0, 2).toUpperCase()
+			nameEn: "Sudan " + uuid, nameAr: "السودان", code: "C_" + uuid.slice(0, 8)
 		}).returning();
 		const [city] = await db.insert(cities).values({
 			countryId: country.id, nameEn: "Khartoum " + uuid, nameAr: "الخرطوم"

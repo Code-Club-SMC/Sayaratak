@@ -19,7 +19,9 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
+  "registries": {
+    "@acme": "https://acme.com/r/{name}.json"
+  },
   "menuColor": "inverted-translucent",
-  "menuAccent": "subtle",
-  "registries": {}
+  "menuAccent": "subtle"
 }

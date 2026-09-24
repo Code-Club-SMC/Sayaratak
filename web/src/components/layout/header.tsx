@@ -1,24 +1,20 @@
-import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-	Search,
-	Plus,
-	Menu,
-	User,
-	LogOut,
+	Bell,
+	ChevronDown,
 	LayoutDashboard,
-	Car,
-	MessageSquare,
-	Heart,
-	Settings,
+	LogOut,
+	Menu,
+	Plus,
 	ShieldAlert,
 } from "lucide-react";
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -29,11 +25,8 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { LocaleSwitcher } from "@/components/shared/locale-switcher";
-import { useTranslation } from "@/lib/i18n";
 import { authClient } from "@/lib/auth-client";
+import { useTranslation } from "@/lib/i18n";
 
 type HeaderUser = {
 	id: string;
@@ -56,26 +49,18 @@ export function Header({ user }: HeaderProps) {
 	async function handleLogout() {
 		await authClient.signOut();
 		navigate({
-			to: "/$locale/_public",
+			to: "/$locale",
 			params: { locale },
 		});
 	}
 
-	const navItems = [
-		{ label: t.common.cars, to: "/$locale/_public" as const },
-		{ label: t.common.dealerships, to: "/$locale/_public" as const },
-		{ label: t.common.workshops, to: "/$locale/_public" as const },
-		{ label: t.common.mechanics, to: "/$locale/_public" as const },
-		{ label: t.common.pricing, to: "/$locale/_public" as const },
-	];
-
 	return (
-		<header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-			<div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
+		<header className="sticky top-0 z-40 w-full border-b border-border bg-background">
+			<div className="container mx-auto flex h-[72px] items-center justify-between px-4 sm:px-6">
 				{/* Brand Logo & Desktop Nav */}
-				<div className="flex items-center gap-6 lg:gap-8">
+				<div className="flex items-center gap-6 lg:gap-10">
 					<Link
-						to="/$locale/_public"
+						to="/$locale"
 						params={{ locale }}
 						className="flex items-center gap-2 transition-opacity hover:opacity-90"
 					>
@@ -87,164 +72,151 @@ export function Header({ user }: HeaderProps) {
 					</Link>
 
 					{/* Desktop Navigation Links */}
-					<nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-						{navItems.map((item) => (
-							<Link
-								key={item.label}
-								to={item.to}
-								params={{ locale }}
-								className="text-muted-foreground transition-colors hover:text-foreground"
-								activeProps={{ className: "text-primary font-semibold" }}
-							>
-								{item.label}
-							</Link>
-						))}
+					<nav className="hidden xl:flex items-center gap-6 text-sm font-medium">
+						<DropdownMenu>
+							<DropdownMenuTrigger className="flex items-center gap-1.5 text-foreground hover:text-primary outline-none">
+								Buy <ChevronDown className="size-4 text-muted-foreground" />
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								<DropdownMenuItem asChild>
+									<Link to="/$locale/listings" params={{ locale }}>
+										Used Cars
+									</Link>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<Link to="/$locale/listings" params={{ locale }}>
+										New Cars
+									</Link>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						<DropdownMenu>
+							<DropdownMenuTrigger className="flex items-center gap-1.5 text-foreground hover:text-primary outline-none">
+								Rent <ChevronDown className="size-4 text-muted-foreground" />
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								<DropdownMenuItem asChild>
+									<Link to="/$locale/listings" params={{ locale }}>
+										Daily Rental
+									</Link>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<Link to="/$locale/listings" params={{ locale }}>
+										Monthly Rental
+									</Link>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						<Link
+							to="/$locale/dealerships"
+							params={{ locale }}
+							className="text-foreground hover:text-primary"
+						>
+							Dealerships
+						</Link>
+						<Link
+							to="/$locale/workshops"
+							params={{ locale }}
+							className="text-foreground hover:text-primary"
+						>
+							Workshops
+						</Link>
+						<Link
+							to="/$locale/listings"
+							params={{ locale }}
+							className="text-foreground hover:text-primary"
+						>
+							Spare Parts
+						</Link>
+
+						<Link
+							to="/$locale/mechanics"
+							params={{ locale }}
+							className="text-foreground hover:text-primary"
+						>
+							Mechanics
+						</Link>
+						<Link
+							to="/$locale"
+							params={{ locale }}
+							className="text-foreground hover:text-primary"
+						>
+							Pricing
+						</Link>
 					</nav>
 				</div>
 
 				{/* Header Actions (End Side) */}
-				<div className="flex items-center gap-3">
-					{/* Locale Switcher */}
-					<LocaleSwitcher />
-
-					{/* User Profile or Login/Register */}
-					{user ? (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									className="relative flex items-center gap-2 rounded-full p-1 sm:px-2"
-								>
-									<Avatar className="size-8 border border-border">
-										<AvatarImage src={user.image ?? undefined} alt={user.name} />
-										<AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-											{user.name?.slice(0, 2).toUpperCase() || "U"}
-										</AvatarFallback>
-									</Avatar>
-									<span className="hidden text-sm font-medium md:inline-block max-w-[120px] truncate">
-										{user.name}
-									</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align={dir === "rtl" ? "start" : "end"}
-								className="w-56"
-							>
-								<DropdownMenuLabel className="font-normal">
-									<div className="flex flex-col space-y-1">
-										<p className="text-sm font-medium leading-none">{user.name}</p>
-										<p className="text-xs leading-none text-muted-foreground truncate">
-											{user.email}
-										</p>
-										{user.accountType && user.accountType !== "user" && (
-											<div className="pt-1">
-												<Badge variant="secondary" className="text-[10px] uppercase font-semibold tracking-wider">
-													{user.accountType}
-												</Badge>
-											</div>
-										)}
-									</div>
-								</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem asChild>
-									<Link
-										to="/$locale/_dashboard/dashboard"
-										params={{ locale }}
-										className="flex w-full items-center gap-2 cursor-pointer"
-									>
-										<LayoutDashboard className="size-4" />
-										<span>{t.nav.overview}</span>
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link
-										to="/$locale/_dashboard/dashboard"
-										params={{ locale }}
-										className="flex w-full items-center gap-2 cursor-pointer"
-									>
-										<Car className="size-4" />
-										<span>{t.nav.myListings}</span>
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link
-										to="/$locale/_dashboard/dashboard"
-										params={{ locale }}
-										className="flex w-full items-center gap-2 cursor-pointer"
-									>
-										<MessageSquare className="size-4" />
-										<span>{t.nav.messages}</span>
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link
-										to="/$locale/_dashboard/dashboard"
-										params={{ locale }}
-										className="flex w-full items-center gap-2 cursor-pointer"
-									>
-										<Heart className="size-4" />
-										<span>{t.nav.favorites}</span>
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link
-										to="/$locale/_dashboard/dashboard"
-										params={{ locale }}
-										className="flex w-full items-center gap-2 cursor-pointer"
-									>
-										<Settings className="size-4" />
-										<span>{t.common.settings}</span>
-									</Link>
-								</DropdownMenuItem>
-								{user.role === "admin" && (
-									<>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem asChild>
-											<Link
-												to="/$locale/_admin/admin"
-												params={{ locale }}
-												className="flex w-full items-center gap-2 text-primary font-medium cursor-pointer"
-											>
-												<ShieldAlert className="size-4" />
-												<span>{t.nav.adminPanel}</span>
-											</Link>
-										</DropdownMenuItem>
-									</>
-								)}
-								<DropdownMenuSeparator />
-								<DropdownMenuItem
-									onClick={handleLogout}
-									className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
-								>
-									<LogOut className="size-4 me-2" />
-									<span>{t.common.logout}</span>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					) : (
-						<div className="hidden sm:flex items-center gap-2">
-							<Button variant="ghost" size="sm" asChild>
-								<Link to="/$locale/_auth/login" params={{ locale }}>
-									{t.common.login}
-								</Link>
-							</Button>
-						</div>
-					)}
-
+				<div className="flex items-center gap-4">
 					{/* Post Ad CTA Button */}
 					<Button
-						size="sm"
-						className="gap-1.5 shadow-sm font-semibold"
+						className="gap-2 font-semibold bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 hidden md:flex"
 						asChild
 					>
 						<Link
-							to={user ? "/$locale/_dashboard/dashboard" : "/$locale/_auth/login"}
+							to={user ? "/$locale/dashboard/listings/new" : "/$locale/login"}
 							params={{ locale }}
 						>
 							<Plus className="size-4" />
-							<span>{t.nav.postAd}</span>
+							<span>Post an Ad</span>
 						</Link>
 					</Button>
+
+					{/* Desktop User Avatar / Auth */}
+					<div className="hidden lg:flex items-center">
+						{user ? (
+							<div className="flex items-center gap-4 ml-4 pl-4 border-l border-border">
+								<Button variant="ghost" size="icon" className="relative">
+									<Bell className="size-5 text-slate-600" />
+									<span className="absolute top-1.5 right-1.5 size-2 bg-blue-600 rounded-full border-2 border-white"></span>
+								</Button>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<button
+											type="button"
+											className="flex items-center gap-2 outline-none"
+										>
+											<Avatar className="size-8 border border-border">
+												<AvatarImage src={user.image || undefined} />
+												<AvatarFallback className="bg-blue-50 text-blue-700 text-xs font-semibold">
+													{user.name.charAt(0)}
+												</AvatarFallback>
+											</Avatar>
+											<ChevronDown className="size-4 text-slate-500" />
+										</button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end" className="w-56">
+										<div className="px-2 py-1.5">
+											<p className="font-semibold text-sm">{user.name}</p>
+											<p className="text-xs text-muted-foreground">
+												{user.email}
+											</p>
+										</div>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem asChild>
+											<Link to="/$locale/dashboard" params={{ locale }}>
+												Dashboard
+											</Link>
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											onClick={handleLogout}
+											className="text-red-600 focus:bg-red-50 focus:text-red-700"
+										>
+											Log out
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						) : (
+							<Button asChild className="ml-4">
+								<Link to="/$locale/login" params={{ locale }}>
+									Login
+								</Link>
+							</Button>
+						)}
+					</div>
 
 					{/* Mobile Menu Hamburger */}
 					<Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -252,13 +224,16 @@ export function Header({ user }: HeaderProps) {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="md:hidden"
+								className="text-foreground lg:hidden"
 								aria-label="Open menu"
 							>
-								<Menu className="size-5" />
+								<Menu className="size-6" />
 							</Button>
 						</SheetTrigger>
-						<SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 sm:w-80">
+						<SheetContent
+							side={dir === "rtl" ? "right" : "left"}
+							className="w-72 sm:w-80"
+						>
 							<SheetHeader className="text-start pb-4 border-b border-border">
 								<SheetTitle>
 									<img
@@ -268,20 +243,65 @@ export function Header({ user }: HeaderProps) {
 									/>
 								</SheetTitle>
 							</SheetHeader>
-							<div className="flex flex-col gap-6 py-6">
+							<div className="flex flex-col gap-6 py-6 overflow-y-auto">
 								{/* Navigation Links */}
 								<nav className="flex flex-col gap-3">
-									{navItems.map((item) => (
-										<Link
-											key={item.label}
-											to={item.to}
-											params={{ locale }}
-											onClick={() => setMobileOpen(false)}
-											className="flex items-center px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-muted"
-										>
-											{item.label}
-										</Link>
-									))}
+									<Link
+										to="/$locale/listings"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Buy
+									</Link>
+									<Link
+										to="/$locale/listings"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Rent
+									</Link>
+									<Link
+										to="/$locale/dealerships"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Dealerships
+									</Link>
+									<Link
+										to="/$locale/workshops"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Workshops
+									</Link>
+									<Link
+										to="/$locale/mechanics"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Mechanics
+									</Link>
+									<Link
+										to="/$locale/listings"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Spare Parts
+									</Link>
+									<Link
+										to="/$locale"
+										params={{ locale }}
+										onClick={() => setMobileOpen(false)}
+										className="px-3 py-2 text-base font-medium"
+									>
+										Pricing
+									</Link>
 								</nav>
 
 								<hr className="border-border" />
@@ -291,7 +311,9 @@ export function Header({ user }: HeaderProps) {
 									<div className="flex flex-col gap-2">
 										<div className="px-3 py-2">
 											<p className="font-semibold text-sm">{user.name}</p>
-											<p className="text-xs text-muted-foreground">{user.email}</p>
+											<p className="text-xs text-muted-foreground">
+												{user.email}
+											</p>
 										</div>
 										<Button
 											variant="outline"
@@ -299,7 +321,7 @@ export function Header({ user }: HeaderProps) {
 											asChild
 											onClick={() => setMobileOpen(false)}
 										>
-											<Link to="/$locale/_dashboard/dashboard" params={{ locale }}>
+											<Link to="/$locale/dashboard" params={{ locale }}>
 												<LayoutDashboard className="size-4 me-2" />
 												{t.common.dashboard}
 											</Link>
@@ -311,7 +333,7 @@ export function Header({ user }: HeaderProps) {
 												asChild
 												onClick={() => setMobileOpen(false)}
 											>
-												<Link to="/$locale/_admin/admin" params={{ locale }}>
+												<Link to="/$locale/admin" params={{ locale }}>
 													<ShieldAlert className="size-4 me-2" />
 													{t.nav.adminPanel}
 												</Link>
@@ -332,7 +354,7 @@ export function Header({ user }: HeaderProps) {
 								) : (
 									<div className="flex flex-col gap-2">
 										<Button asChild onClick={() => setMobileOpen(false)}>
-											<Link to="/$locale/_auth/login" params={{ locale }}>
+											<Link to="/$locale/login" params={{ locale }}>
 												{t.common.login}
 											</Link>
 										</Button>

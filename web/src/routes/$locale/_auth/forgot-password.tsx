@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ function ForgotPasswordPage() {
 
 		const result = await authClient.requestPasswordReset({
 			email,
-			redirectTo: `/${locale}/_auth/reset-password`,
+			redirectTo: `/${locale}/reset-password`,
 		});
 
 		setLoading(false);
@@ -55,7 +55,7 @@ function ForgotPasswordPage() {
 						{t.auth.resetPasswordSent}
 					</p>
 					<Button asChild className="w-full">
-						<Link to="/$locale/_auth/login" params={{ locale }}>
+						<Link to="/$locale/login" params={{ locale }}>
 							{t.auth.signInLink}
 						</Link>
 					</Button>
@@ -86,7 +86,7 @@ function ForgotPasswordPage() {
 
 					<div className="text-center pt-2">
 						<Link
-							to="/$locale/_auth/login"
+							to="/$locale/login"
 							params={{ locale }}
 							className="text-xs text-primary underline-offset-4 hover:underline"
 						>

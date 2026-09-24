@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%" fill="none">
+  <rect width="400" height="300" fill="#F1F5F9" rx="8"/>
+  <g transform="translate(130, 85)" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Car body outline -->
+    <path d="M10 85 L20 85 A 15 15 0 0 1 50 85 L90 85 A 15 15 0 0 1 120 85 L130 85 C135 85 140 80 140 75 L135 55 C133 48 128 42 120 40 L95 32 C90 30 85 20 70 20 L40 20 C25 20 18 30 12 36 L2 52 C0 56 0 65 0 72 C0 79 5 85 10 85 Z"/>
+    <!-- Windows -->
+    <path d="M35 27 L65 27 L65 42 L18 42 Z" fill="#E2E8F0"/>
+    <path d="M72 27 L95 36 L95 42 L72 42 Z" fill="#E2E8F0"/>
+    <!-- Wheels -->
+    <circle cx="35" cy="85" r="14" fill="#CBD5E1" stroke="#94A3B8" stroke-width="3"/>
+    <circle cx="35" cy="85" r="5" fill="#94A3B8"/>
+    <circle cx="105" cy="85" r="14" fill="#CBD5E1" stroke="#94A3B8" stroke-width="3"/>
+    <circle cx="105" cy="85" r="5" fill="#94A3B8"/>
+    <!-- Headlights -->
+    <path d="M2 60 L12 60" stroke="#0B5CFF" stroke-width="4"/>
+    <path d="M138 60 L128 60" stroke="#DC2626" stroke-width="4"/>
+  </g>
+  <text x="200" y="220" text-anchor="middle" fill="#64748B" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500">Sayaratak • سيارتك</text>
+</svg>

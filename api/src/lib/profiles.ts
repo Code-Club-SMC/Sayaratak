@@ -33,17 +33,27 @@ export async function createProfileForUser(
 		return;
 	}
 
-	const table = profileTableMap[accountType as ProfileType];
-	if (!table) return;
-
-	const [existing] = await db
-		.select({ id: table.id })
-		.from(table as any)
-		.where(eq(table.userId, userId))
-		.limit(1);
-
-	if (!existing) {
-		await db.insert(table as any).values({ userId });
+	if (accountType === "dealership") {
+		const [existing] = await db
+			.select({ id: dealerships.id })
+			.from(dealerships)
+			.where(eq(dealerships.userId, userId))
+			.limit(1);
+		if (!existing) await db.insert(dealerships).values({ userId });
+	} else if (accountType === "workshop") {
+		const [existing] = await db
+			.select({ id: workshops.id })
+			.from(workshops)
+			.where(eq(workshops.userId, userId))
+			.limit(1);
+		if (!existing) await db.insert(workshops).values({ userId });
+	} else if (accountType === "mechanic") {
+		const [existing] = await db
+			.select({ id: mechanics.id })
+			.from(mechanics)
+			.where(eq(mechanics.userId, userId))
+			.limit(1);
+		if (!existing) await db.insert(mechanics).values({ userId });
 	}
 
 	await enrollInFreePlan(userId, accountType);

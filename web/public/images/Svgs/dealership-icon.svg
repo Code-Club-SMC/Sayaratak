@@ -1,0 +1,53 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ground -->
+  <line x1="1" y1="21" x2="23" y2="21" />
+  
+  <!-- Left Building -->
+  <line x1="2.5" y1="10" x2="8.5" y2="10" />
+  <path d="M3.5 10v11" />
+  
+  <!-- Right Building -->
+  <line x1="15.5" y1="10" x2="21.5" y2="10" />
+  <path d="M20.5 10v11" />
+  
+  <!-- Center Building -->
+  <line x1="7" y1="4" x2="17" y2="4" />
+  <path d="M8 4v17M16 4v17" />
+  
+  <!-- Center Windows (3 cols x 4 rows) -->
+  <rect x="9.5" y="6" width="1" height="1.5" />
+  <rect x="11.5" y="6" width="1" height="1.5" />
+  <rect x="13.5" y="6" width="1" height="1.5" />
+
+  <rect x="9.5" y="9.5" width="1" height="1.5" />
+  <rect x="11.5" y="9.5" width="1" height="1.5" />
+  <rect x="13.5" y="9.5" width="1" height="1.5" />
+
+  <rect x="9.5" y="13" width="1" height="1.5" />
+  <rect x="11.5" y="13" width="1" height="1.5" />
+  <rect x="13.5" y="13" width="1" height="1.5" />
+
+  <rect x="9.5" y="16.5" width="1" height="1.5" />
+  <rect x="11.5" y="16.5" width="1" height="1.5" />
+  <rect x="13.5" y="16.5" width="1" height="1.5" />
+
+  <!-- Left Windows (2 cols x 3 rows) -->
+  <rect x="4.5" y="12" width="1" height="1.5" />
+  <rect x="6.5" y="12" width="1" height="1.5" />
+
+  <rect x="4.5" y="15" width="1" height="1.5" />
+  <rect x="6.5" y="15" width="1" height="1.5" />
+
+  <rect x="4.5" y="18" width="1" height="1.5" />
+  <rect x="6.5" y="18" width="1" height="1.5" />
+
+  <!-- Right Windows (2 cols x 3 rows) -->
+  <rect x="16.5" y="12" width="1" height="1.5" />
+  <rect x="18.5" y="12" width="1" height="1.5" />
+
+  <rect x="16.5" y="15" width="1" height="1.5" />
+  <rect x="18.5" y="15" width="1" height="1.5" />
+
+  <rect x="16.5" y="18" width="1" height="1.5" />
+  <rect x="18.5" y="18" width="1" height="1.5" />
+</svg>

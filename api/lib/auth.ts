@@ -18,7 +18,7 @@ export const auth = betterAuth({
 		"http://localhost:8000",
 	],
 	advanced: {
-		disableCSRFCheck: true,
+		disableCSRFCheck: process.env.NODE_ENV === "test",
 	},
 	emailAndPassword: {
 		enabled: true,

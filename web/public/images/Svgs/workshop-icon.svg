@@ -1,0 +1,14 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wrench: Top-left to Bottom-right -->
+  <path d="M14.7 9.3a4.6 4.6 0 0 0-5.87-4.14l2.4 2.4-2.83 2.83-2.4-2.4A4.6 4.6 0 0 0 10.14 13.86L18.63 22.34a2 2 0 1 0 2.83-2.83L13 11Z"/>
+  
+  <!-- Screwdriver: Top-right to Bottom-left -->
+  <path d="m14.6 9.4 4.24-4.24a1.41 1.41 0 0 1 2 2l-4.24 4.24"/>
+  <path d="m9.4 14.6-4.24 4.24a2 2 0 1 1-2.83-2.83l4.24-4.24"/>
+  <path d="M8 18l-2-2"/>
+  
+  <!-- Sparkles -->
+  <path d="M19 4v2m-1-1h2"/>
+  <path d="M4 8v2m-1-1h2"/>
+  <path d="M20 16v2m-1-1h2"/>
+</svg>

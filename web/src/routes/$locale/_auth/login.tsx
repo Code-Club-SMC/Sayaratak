@@ -41,8 +41,7 @@ function LoginPage() {
 		}
 
 		// Redirect to the original page or dashboard
-		window.location.href =
-			redirectTo ?? `/${locale}/dashboard`;
+		window.location.href = redirectTo ?? `/${locale}/dashboard`;
 	}
 
 	async function handleSocial(provider: "google" | "facebook") {
@@ -59,9 +58,7 @@ function LoginPage() {
 				<h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
 					{t.auth.welcomeBack}
 				</h1>
-				<p className="text-sm text-muted-foreground">
-					{t.auth.signInSubtitle}
-				</p>
+				<p className="text-sm text-muted-foreground">{t.auth.signInSubtitle}</p>
 			</div>
 
 			<form onSubmit={handleEmailLogin} className="space-y-4 pt-6">
@@ -81,7 +78,7 @@ function LoginPage() {
 					<div className="flex items-center justify-between">
 						<Label htmlFor="password">{t.auth.password}</Label>
 						<Link
-							to="/$locale/_auth/forgot-password"
+							to="/$locale/forgot-password"
 							params={{ locale }}
 							className="text-xs font-medium text-primary underline-offset-4 hover:underline"
 						>
@@ -127,7 +124,8 @@ function LoginPage() {
 					{socialLoading === "google" ? (
 						<span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
 					) : (
-						<svg viewBox="0 0 24 24" className="size-4">
+						<svg viewBox="0 0 24 24" className="size-4" role="img">
+							<title>Google</title>
 							<path
 								fill="#4285F4"
 								d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.2-4.9 3.2-7.8z"
@@ -156,7 +154,13 @@ function LoginPage() {
 					{socialLoading === "facebook" ? (
 						<span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
 					) : (
-						<svg viewBox="0 0 24 24" className="size-4" fill="#1877F2">
+						<svg
+							viewBox="0 0 24 24"
+							className="size-4"
+							fill="#1877F2"
+							role="img"
+						>
+							<title>Facebook</title>
 							<path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4h-3v-3.5h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9v2.2h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12z" />
 						</svg>
 					)}
@@ -167,7 +171,7 @@ function LoginPage() {
 			<p className="pt-6 text-center text-sm text-muted-foreground">
 				{t.auth.noAccount}{" "}
 				<Link
-					to="/$locale/_auth/register"
+					to="/$locale/register"
 					params={{ locale }}
 					className="font-medium text-primary underline-offset-4 hover:underline"
 				>

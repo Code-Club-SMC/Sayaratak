@@ -2,18 +2,11 @@
  * Shared Canonical & Public URL Construction Helper (AGENTS.md §5)
  */
 
+import type { ResolvableEntityType } from "./entity-resolver";
+
 export const BASE_URL = process.env.BASE_URL || "https://sayaratak.com";
 
-export type EntityUrlType =
-	| "listing"
-	| "vehicle"
-	| "dealership"
-	| "dealer"
-	| "workshop"
-	| "mechanic"
-	| "category"
-	| "make"
-	| "page";
+export type EntityUrlType = ResolvableEntityType;
 
 /**
  * Builds the canonical relative path for an entity.

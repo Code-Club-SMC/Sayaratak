@@ -1,39 +1,39 @@
-import type { ReactNode } from "react";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-	Outlet,
-	ScrollRestoration,
 	createRootRouteWithContext,
 	HeadContent,
+	Outlet,
 	Scripts,
+	ScrollRestoration,
 	useRouterState,
 } from "@tanstack/react-router";
-import type { QueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 
 import "../globals.css";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
-}>()(
-	{
-		head: () => ({
-			meta: [
-				{ charSet: "utf-8" },
-				{ name: "viewport", content: "width=device-width, initial-scale=1" },
-				{ title: "Sayaratak — Buy, Sell & Rent Vehicles" },
-			],
-			links: [
-				{ rel: "icon", href: "/favicon.ico" },
-			],
-		}),
-		component: RootComponent,
-	},
-);
+}>()({
+	head: () => ({
+		meta: [
+			{ charSet: "utf-8" },
+			{ name: "viewport", content: "width=device-width, initial-scale=1" },
+			{ title: "Sayaratak — Buy, Sell & Rent Vehicles" },
+		],
+		links: [{ rel: "icon", href: "/favicon.ico" }],
+	}),
+	component: RootComponent,
+});
 
 function RootComponent() {
+	const { queryClient } = Route.useRouteContext();
+
 	return (
-		<RootDocument>
-			<Outlet />
-		</RootDocument>
+		<QueryClientProvider client={queryClient}>
+			<RootDocument>
+				<Outlet />
+			</RootDocument>
+		</QueryClientProvider>
 	);
 }
 

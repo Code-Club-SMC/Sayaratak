@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, uniqueIndex, jsonb, index } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 import { listings } from "./listing-schema";
 import { dealerships, workshops, mechanics } from "./profile-schema";
@@ -62,27 +62,44 @@ export const reports = pgTable("reports", {
 });
 
 // Deletion policy: Hard delete upon user delete request; cascade-deleted on user removal.
-export const savedSearches = pgTable("saved_searches", {
-	id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-	userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
-	title: text("title").notNull(),
-	filters: jsonb("filters").$type<Record<string, any>>().notNull(), // MakeId, minPrice, maxPrice, year, etc.
-	lastNotifiedAt: timestamp("lastNotifiedAt"),
-	createdAt: timestamp("createdAt").notNull().defaultNow(),
-	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+export const savedSearches = pgTable(
+	"saved_searches",
+	{
+		id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+		userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+		title: text("title").notNull(),
+		filters: jsonb("filters").$type<Record<string, any>>().notNull(), // MakeId, minPrice, maxPrice, year, etc.
+		lastNotifiedAt: timestamp("lastNotifiedAt"),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+		updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	},
+	(table) => ({
+		savedSearchesUserIdIdx: index("saved_searches_userId_idx").on(table.userId),
+	}),
+);
 
 // Deletion policy: Retained for analytics continuity; userId set to null if creator user is deleted.
-export const shareLinks = pgTable("share_links", {
-	id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-	code: text("code").notNull().unique(), // unique 8-character code
-	targetType: text("targetType").notNull(), // "listing" | "dealership" | "workshop" | "mechanic" | "page"
-	targetId: text("targetId").notNull(),
-	targetUrl: text("targetUrl").notNull(),
-	platform: text("platform").notNull().default("general"), // "whatsapp" | "facebook" | "telegram" | "tiktok" | "twitter" | "copy_link" | "general"
-	userId: text("userId").references(() => user.id, { onDelete: "set null" }),
-	clicks: integer("clicks").notNull().default(0), // human click-throughs
-	impressions: integer("impressions").notNull().default(0), // crawler / bot preview unfurls
-	createdAt: timestamp("createdAt").notNull().defaultNow(),
-	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+export const shareLinks = pgTable(
+	"share_links",
+	{
+		id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+		code: text("code").notNull().unique(), // unique 8-character code
+		targetType: text("targetType").notNull(), // "listing" | "dealership" | "workshop" | "mechanic" | "page"
+		targetId: text("targetId").notNull(),
+		targetUrl: text("targetUrl").notNull(),
+		platform: text("platform").notNull().default("general"), // "whatsapp" | "facebook" | "telegram" | "tiktok" | "twitter" | "copy_link" | "general"
+		userId: text("userId").references(() => user.id, { onDelete: "set null" }),
+		clicks: integer("clicks").notNull().default(0), // human click-throughs
+		impressions: integer("impressions").notNull().default(0), // crawler / bot preview unfurls
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+		updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	},
+	(table) => ({
+		shareLinksTargetPlatformUserIdx: index("share_links_target_platform_user_idx").on(
+			table.targetType,
+			table.targetId,
+			table.platform,
+			table.userId,
+		),
+	}),
+);

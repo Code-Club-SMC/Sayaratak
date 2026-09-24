@@ -27,7 +27,7 @@ function RegisterPage() {
 				<p className="pt-6 text-center text-sm text-muted-foreground">
 					{t.auth.haveAccount}{" "}
 					<Link
-						to="/$locale/_auth/login"
+						to="/$locale/login"
 						params={{ locale }}
 						className="font-medium text-primary underline-offset-4 hover:underline"
 					>

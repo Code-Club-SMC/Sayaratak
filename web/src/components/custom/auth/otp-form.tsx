@@ -1,4 +1,3 @@
-import { useForm } from "react-hook-form";
 import {
 	Field,
 	FieldContent,
@@ -9,8 +8,6 @@ import {
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 
 export const OTP = () => {
-	const form = useForm({});
-
 	return (
 		<div>
 			<RadioGroup defaultValue="plus" className="max-w-sm">
