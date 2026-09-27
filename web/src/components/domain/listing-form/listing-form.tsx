@@ -351,10 +351,11 @@ export function ListingForm({
 							placeholder={locale === "ar" ? "غير محدد" : "None"}
 							value={values.rentalPeriod ?? ""}
 							onChange={(value) =>
-								updateText(
-									"rentalPeriod",
-									value as ListingFormValues["rentalPeriod"],
-								)
+								patch({
+									rentalPeriod: value
+										? (value as ListingFormValues["rentalPeriod"])
+										: undefined,
+								})
 							}
 						/>
 					</Field>

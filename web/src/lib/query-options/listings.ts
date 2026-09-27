@@ -129,6 +129,17 @@ function isMockListingFallbackEnabled(): boolean {
 	);
 }
 
+function isSellerAccountType(
+	value: string | null | undefined,
+): value is "user" | "dealership" | "workshop" | "mechanic" {
+	return (
+		value === "user" ||
+		value === "dealership" ||
+		value === "workshop" ||
+		value === "mechanic"
+	);
+}
+
 function mapBackendListing(d: BackendListing, locale: string): ListingItem {
 	const media = Array.isArray(d.media) ? d.media : [];
 	const city =
@@ -139,6 +150,7 @@ function mapBackendListing(d: BackendListing, locale: string): ListingItem {
 		locale === "ar"
 			? d.district?.nameAr || d.district?.nameEn
 			: d.district?.nameEn || d.district?.nameAr;
+	const accountType = d.user?.accountType;
 
 	return {
 		id: d.id,
@@ -171,7 +183,7 @@ function mapBackendListing(d: BackendListing, locale: string): ListingItem {
 		seller: {
 			name: d.user?.name || "Seller",
 			isVerified: false,
-			accountType: d.user?.accountType || "user",
+			accountType: isSellerAccountType(accountType) ? accountType : "user",
 		},
 		createdAt: d.createdAt,
 	};
@@ -951,10 +963,11 @@ export function listingsQueryOptions(
 
 export function managementListingsQueryOptions(
 	locale: string,
+	userId: string,
 	filters: ListingFilters = { page: 1, limit: 20 },
 ) {
 	return queryOptions({
-		queryKey: listingKeys.managementList(locale, filters),
+		queryKey: listingKeys.managementList(locale, userId, filters),
 		queryFn: async (): Promise<ListingsResponse> => {
 			const data = await apiGet<BackendListingsResponse>(
 				"/api/v1/listings/me",
@@ -1180,7 +1193,7 @@ export function listingDetailQueryOptions(locale: string, id: string) {
 					district: found.district,
 					media: (found.images && found.images.length > 0
 						? found.images
-						: MOCK_DETAIL_LAND_CRUISER.images
+						: (MOCK_DETAIL_LAND_CRUISER.images ?? [])
 					).map((img, i) => ({
 						url: img,
 						isPrimary: i === 0,
@@ -1229,9 +1242,13 @@ export function listingDetailQueryOptions(locale: string, id: string) {
 	});
 }
 
-export function managedListingDetailQueryOptions(locale: string, id: string) {
+export function managedListingDetailQueryOptions(
+	locale: string,
+	id: string,
+	userId: string,
+) {
 	return queryOptions({
-		queryKey: listingKeys.managedDetail(locale, id),
+		queryKey: listingKeys.managedDetail(locale, id, userId),
 		queryFn: async (): Promise<ListingDetail> => {
 			const data = await apiGet<
 				BackendListing & { user?: BackendListing["user"] }
@@ -1263,11 +1280,12 @@ export function managedListingDetailQueryOptions(locale: string, id: string) {
 				transmission: data.transmission ?? undefined,
 				fuelType: data.fuelType ?? undefined,
 				condition: data.condition ?? undefined,
-				categoryId: data.categoryId,
-				makeId: data.makeId,
-				modelId: data.modelId,
-				cityId: data.cityId,
-				districtId: data.districtId,
+				categoryId: data.categoryId ?? undefined,
+				makeId: data.makeId ?? undefined,
+				modelId: data.modelId ?? undefined,
+				countryId: data.countryId ?? undefined,
+				cityId: data.cityId ?? undefined,
+				districtId: data.districtId ?? undefined,
 				lat: data.lat ?? undefined,
 				lng: data.lng ?? undefined,
 				city: city || undefined,

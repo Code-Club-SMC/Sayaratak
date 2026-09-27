@@ -783,18 +783,18 @@ Append create route completion and verification notes to the handoff.
 - Modify: `docs/web-frontend-handoff-2026-09-24.md`
 
 **Interfaces:**
-- Consumes: `ListingForm`, `MediaUploader`, `listingDetailQueryOptions`, `updateListing`
+- Consumes: `ListingForm`, `MediaUploader`, `managedListingDetailQueryOptions`, `updateListing`
 - Produces: `/dashboard/listings/:id/edit`
 
-- [ ] **Step 1: Add loader/query**
+- [x] **Step 1: Add loader/query**
 
-Use `listingDetailQueryOptions(locale, id)` in the route loader and `useQuery` in the component.
+Use `managedListingDetailQueryOptions(locale, id)` in the route loader and `useQuery` in the component so drafts remain editable without entering the public detail cache.
 
-- [ ] **Step 2: Initialize form from backend detail**
+- [x] **Step 2: Initialize form from backend detail**
 
 Use `fromListingDetail(data)` once data is available. Do not overwrite dirty local edits after initialization.
 
-- [ ] **Step 3: Save edits**
+- [x] **Step 3: Save edits**
 
 On submit:
 
@@ -805,11 +805,14 @@ await updateListing(locale, id, toListingMutationPayload(values, values.status))
 Invalidate detail and management list:
 
 ```ts
+queryClient.invalidateQueries({ queryKey: listingKeys.managedDetail(locale, id) });
 queryClient.invalidateQueries({ queryKey: listingKeys.detail(locale, id) });
 queryClient.invalidateQueries({ queryKey: listingKeys.managementLists(locale) });
 ```
 
-- [ ] **Step 4: Verify task**
+Also invalidate public lists. For owner-read statuses outside the mutation enum (`pending`, `rejected`, `banned`), omit `status` on save to preserve the backend lifecycle state.
+
+- [x] **Step 4: Verify task**
 
 Run:
 
@@ -820,7 +823,7 @@ cd web && bun run build
 
 Expected: both exit 0.
 
-- [ ] **Step 5: Record task**
+- [x] **Step 5: Record task**
 
 Append edit route completion and verification notes to the handoff.
 
@@ -837,19 +840,19 @@ Append edit route completion and verification notes to the handoff.
 - Consumes: `managementListingsQueryOptions`, `updateListingStatus`, `deleteListing`
 - Produces: backend-backed list management view
 
-- [ ] **Step 1: Replace mock list source**
+- [x] **Step 1: Replace mock list source**
 
 Use:
 
 ```ts
 const { data, isLoading, isError, refetch } = useQuery(
-	managementListingsQueryOptions(locale, { page, limit: 20 }),
+	managementListingsQueryOptions(locale, user.id, { page, limit: 20 }),
 );
 ```
 
 Do not fall back to mock authenticated listing data in production.
 
-- [ ] **Step 2: Add status actions**
+- [x] **Step 2: Add status actions**
 
 Actions call:
 
@@ -867,7 +870,7 @@ Allowed frontend actions:
 
 Backend rejection remains authoritative.
 
-- [ ] **Step 3: Add delete confirmation**
+- [x] **Step 3: Add delete confirmation**
 
 Use existing alert dialog primitives. On confirm:
 
@@ -880,7 +883,7 @@ await queryClient.invalidateQueries({
 
 No optimistic delete in this phase.
 
-- [ ] **Step 4: Wire edit action**
+- [x] **Step 4: Wire edit action**
 
 Edit action navigates to:
 
@@ -888,7 +891,7 @@ Edit action navigates to:
 /$locale/dashboard/listings/$id/edit
 ```
 
-- [ ] **Step 5: Verify task**
+- [x] **Step 5: Verify task**
 
 Run:
 
@@ -899,7 +902,7 @@ cd web && bun run build
 
 Expected: both exit 0.
 
-- [ ] **Step 6: Record task**
+- [x] **Step 6: Record task**
 
 Append dashboard management completion and verification notes to the handoff.
 
@@ -914,7 +917,7 @@ Append dashboard management completion and verification notes to the handoff.
 - Consumes: all completed tasks
 - Produces: final verified Phase 2 notes
 
-- [ ] **Step 1: Run full frontend checks**
+- [x] **Step 1: Run full frontend checks**
 
 Run:
 
@@ -939,7 +942,7 @@ With backend and frontend running, verify:
 - delete listing
 - failed mutation displays error instead of success
 
-- [ ] **Step 3: Update handoff**
+- [x] **Step 3: Update handoff**
 
 Record:
 - completed files/features

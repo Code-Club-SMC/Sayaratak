@@ -15,7 +15,7 @@ const editableListingStatuses = [
 	"rented",
 ] as const;
 
-const optionalNumber = (schema: z.ZodNumber) =>
+const optionalNumber = (schema: z.ZodType<number>) =>
 	z.preprocess(
 		(value) => (value === "" || value === null ? undefined : value),
 		schema.optional(),
@@ -151,11 +151,11 @@ export function fromListingDetail(listing: ListingDetail): ListingFormValues {
 		status,
 		lat: listing.lat,
 		lng: listing.lng,
-		year: listing.year,
-		mileage: listing.mileage,
-		transmission: listing.transmission,
-		fuelType: listing.fuelType,
-		condition: listing.condition,
+		year: listing.year ?? undefined,
+		mileage: listing.mileage ?? undefined,
+		transmission: listing.transmission ?? undefined,
+		fuelType: listing.fuelType ?? undefined,
+		condition: listing.condition ?? undefined,
 		trim:
 			typeof listing.specs?.trim === "string" ? listing.specs.trim : undefined,
 		engineSize:

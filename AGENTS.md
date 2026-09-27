@@ -2,6 +2,12 @@
 
 Please follow these strict guidelines when writing code or making architectural decisions for this project. These rules apply to both backend and frontend environments.
 
+## Communication
+
+- Use the `ponytail` skill in full mode for coding and architecture. Prefer the simplest correct solution without skipping security, validation, accessibility, or tests. Do not use the `caveman` skill unless the user asks for it.
+- Keep chat in plain English: short, direct, and technically accurate.
+- Write code, comments, documentation, and other durable artifacts in normal clear English.
+
 ## 0. Commands (Backend — `/api`)
 
 Run these exactly as written. Do not substitute `npm`/`yarn`/`node` equivalents.

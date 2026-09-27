@@ -14,7 +14,6 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import { useTranslation } from "@/lib/i18n";
 
 /**
  * Dashboard layout — requires an authenticated session.
@@ -64,12 +63,11 @@ export const Route = createFileRoute("/$locale/_dashboard")({
 function DashboardLayout() {
 	const { user } = Route.useRouteContext();
 	const { locale } = Route.useParams();
-	const { dir } = useTranslation();
 
 	// SidebarProvider will inject the dir (rtl/ltr) and handle mobile state automatically
 	return (
 		<SidebarProvider>
-			<DashboardSidebar user={user} />
+			<DashboardSidebar />
 			<SidebarInset className="overflow-hidden flex flex-col h-screen">
 				{/* Global Header (Navbar) */}
 				<header className="flex h-24 items-center justify-between border-b mr-4">
@@ -77,14 +75,17 @@ function DashboardLayout() {
 
 					<div className="flex items-center gap-x-3">
 						<Button
-							asChild
+							render={
+								<Link
+									to="/$locale/dashboard/listings/new"
+									params={{ locale }}
+								/>
+							}
 							variant={"outline"}
 							className="border border-primary text-primary hover:border-primary hover:text-primary"
 						>
-							<Link to="/$locale/dashboard/listings/new" params={{ locale }}>
-								Post an Ad
-								<PlusIcon />
-							</Link>
+							{locale === "ar" ? "أضف إعلاناً" : "Post an Ad"}
+							<PlusIcon />
 						</Button>
 						<NavUser user={user} />
 					</div>

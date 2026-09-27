@@ -74,8 +74,8 @@ export const listingKeys = {
 
 	managementLists: (locale: string) =>
 		[...listingKeys.all(locale), "management"] as const,
-	managementList: (locale: string, filters: ListingFilters) =>
-		[...listingKeys.managementLists(locale), filters] as const,
+	managementList: (locale: string, userId: string, filters: ListingFilters) =>
+		[...listingKeys.managementLists(locale), userId, filters] as const,
 
 	details: (locale: string) => [...listingKeys.all(locale), "detail"] as const,
 	detail: (locale: string, id: string) =>
@@ -83,8 +83,12 @@ export const listingKeys = {
 
 	managedDetails: (locale: string) =>
 		[...listingKeys.all(locale), "managed-detail"] as const,
-	managedDetail: (locale: string, id: string) =>
-		[...listingKeys.managedDetails(locale), id] as const,
+	managedDetail: (locale: string, id: string, userId?: string) =>
+		[
+			...listingKeys.managedDetails(locale),
+			id,
+			...(userId ? [userId] : []),
+		] as const,
 
 	map: (locale: string, bounds: Record<string, number>) =>
 		[...listingKeys.all(locale), "map", bounds] as const,
