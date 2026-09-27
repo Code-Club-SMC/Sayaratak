@@ -211,3 +211,12 @@ Current gate:
 1. Work in the local `web` app. The recommended next user-facing slice is public listing details for sale vehicles, rentals, and spare parts, checked against SCR-011 to SCR-013 and the gallery/contact/share/report overlays. Read the existing page and API contract before editing; preserve current local changes. This recommendation is not implemented yet.
 2. Obtain a verified local test account or test session. Run Task 7's authenticated listing browser flow in English and Arabic; record screenshots and defects. Cloudinary photo upload also needs its three local credentials.
 3. Inspect the large dirty worktree before staging. Keep semantic listing changes separate from existing formatting and unrelated edits. Full-project TypeScript errors remain a separate cleanup task.
+
+## Listing-Conversation Flow — Task 1 Completed
+
+- Added nullable per-listing `contactPhone`/`contactWhatsapp` and default-off
+  `contactPhoneEnabled`/`contactWhatsappEnabled` consent flags to `listings`.
+- Generated the migration: `cd api && bun run db:generate` exited 0.
+- Migration file created at `api/src/db/migrations/20260927175623_amazing_zaran/migration.sql` with correct columns.
+- Database migration apply (`bun run db:migrate`) blocked by lack of database connection in this environment.
+- Verification: Schema file modified, migration SQL generated and verified.

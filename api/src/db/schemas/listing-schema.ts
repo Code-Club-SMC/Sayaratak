@@ -51,6 +51,13 @@ export const listings = pgTable(
 		// For rental listings: "daily" | "weekly" | "monthly"
 		rentalPeriod: text("rentalPeriod"),
 
+		// Per-listing contact consent. Nullable and off by default; never populated from
+		// the account's login phone (user.phone) — a seller must opt in per listing.
+		contactPhone: text("contactPhone"),
+		contactPhoneEnabled: boolean("contactPhoneEnabled").notNull().default(false),
+		contactWhatsapp: text("contactWhatsapp"),
+		contactWhatsappEnabled: boolean("contactWhatsappEnabled").notNull().default(false),
+
 		// Enums enforced at application level via Zod for simplicity
 		status: text("status").notNull().default("draft"), // "draft" | "available" | "reserved" | "sold" | "rented" | "pending" | "rejected" | "banned"
 
