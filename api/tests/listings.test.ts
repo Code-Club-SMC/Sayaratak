@@ -295,6 +295,27 @@ describe("Listings Engine Endpoints", () => {
 		);
 	});
 
+	test("GET /api/listings redacts raw contact fields and the account phone, exposing only the derived contact object", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000004",
+			contactPhoneEnabled: true,
+		});
+
+		const res = await listingsApp.request("/");
+		expect(res.status).toBe(200);
+		const page = (await res.json()) as { items: any[] };
+		const item = page.items.find((l) => l.id === listing.id);
+		expect(item).toBeDefined();
+		expect(item.contact.phone).toBe("+249900000004");
+		expect(item.contact.canMessage).toBe(true);
+		// Raw consent columns must never leak on the public list path.
+		expect(item.contactPhone).toBeUndefined();
+		expect(item.contactPhoneEnabled).toBeUndefined();
+		expect(item.contactWhatsapp).toBeUndefined();
+		expect(item.contactWhatsappEnabled).toBeUndefined();
+		expect(item.user.phone).toBeUndefined();
+	});
+
 	test("GET /api/listings/:id fetches single listing", async () => {
 		const res = await listingsApp.request(`/${createdListingId}`);
 		expect(res.status).toBe(200);
@@ -382,6 +403,26 @@ describe("Listings Engine Endpoints", () => {
 			expect(res.status).toBe(200);
 			const json = await res.json();
 			expect(json.status).toBe(status);
+			expect(json.contact.canMessage).toBe(false);
+			expect(json.contact.phone).toBeNull();
+			expect(json.contact.whatsapp).toBeNull();
+		}
+	});
+
+	test("GET /listings/:id keeps contact closed for reserved/sold/rented even when a real, enabled contact number is on record", async () => {
+		// Unlike the test above, these listings DO have live, enabled contact numbers.
+		// If the `canMessage &&` gate in withPublicContact were ever dropped, this is the
+		// test that would catch a real phone number leaking on a closed listing.
+		for (const status of ["reserved", "sold", "rented"]) {
+			const listing = await createListingWithStatus(sellerCookie, status, {
+				contactPhone: "+249900000002",
+				contactPhoneEnabled: true,
+				contactWhatsapp: "+249900000003",
+				contactWhatsappEnabled: true,
+			});
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(200);
+			const json = await res.json();
 			expect(json.contact.canMessage).toBe(false);
 			expect(json.contact.phone).toBeNull();
 			expect(json.contact.whatsapp).toBeNull();

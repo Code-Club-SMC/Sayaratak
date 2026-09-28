@@ -19,7 +19,6 @@ import { isBotUserAgent } from "../lib/bot-detection";
 import {
 	NotFoundError,
 	ForbiddenError,
-	GoneError,
 	BadRequestError,
 } from "../lib/errors";
 import type { SessionUser } from "../middleware/auth";
