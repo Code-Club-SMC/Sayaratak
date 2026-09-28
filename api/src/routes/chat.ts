@@ -71,11 +71,17 @@ chatApp.get(
 chatApp.post("/", requireAuth(), zValidator("json", startChatSchema), async (c) => {
 	const user = c.get("user");
 	const { listingId, content, clientMessageId } = c.req.valid("json");
+
+	const server =
+		(c.env as Record<string, unknown> | undefined)?.server ||
+		(globalThis as Record<string, unknown>).server;
+
 	const result = await chatService.startConversationWithMessage(
 		user.id,
 		listingId,
 		content,
 		clientMessageId,
+		server,
 	);
 	return c.json(result, result.isNewConversation ? 201 : 200);
 });

@@ -5,6 +5,7 @@ import { conversations, messages } from "../db/schemas/communication-schema";
 import { listings } from "../db/schemas/listing-schema";
 import { user } from "../db/schemas/auth-schema";
 import { sendPushNotification } from "../lib/fcm";
+import { sendNewMessageEmail } from "../lib/mailer";
 import { NotFoundError, ForbiddenError, BadRequestError } from "../lib/errors";
 
 type BunServerWithPublish = {
@@ -74,6 +75,57 @@ function safeConversation(conv: typeof conversations.$inferSelect) {
 		lastMessageAt: conv.lastMessageAt,
 		createdAt: conv.createdAt,
 	};
+}
+
+/**
+ * Delivers a new-message notification: WebSocket broadcast first, push
+ * notification as a fallback only when the WebSocket delivery didn't reach
+ * anyone (receiver is offline), and email always (a persistent channel the
+ * receiver checks regardless of live delivery) — skipped in tests so the
+ * suite never triggers real SMTP sends.
+ */
+async function notifyNewMessage(
+	receiverId: string,
+	senderId: string,
+	content: string,
+	conversationId: string,
+	msgResponse: ReturnType<typeof safeMessage>,
+	server?: unknown,
+) {
+	let deliveredViaWs = false;
+	const wsServer = server as BunServerWithPublish | undefined;
+	if (wsServer && typeof wsServer.publish === "function") {
+		const recipientCount = wsServer.publish(
+			`user_${receiverId}`,
+			JSON.stringify({ type: "chat_message", data: msgResponse }),
+		);
+		if (typeof recipientCount === "number" && recipientCount > 0) {
+			deliveredViaWs = true;
+		}
+	}
+
+	if (!deliveredViaWs) {
+		await sendPushNotification(receiverId, "New Message", content, {
+			type: "chat",
+			conversationId,
+		});
+	}
+
+	if (process.env.NODE_ENV !== "test") {
+		const [sender, receiver] = await Promise.all([
+			db.select({ name: user.name }).from(user).where(eq(user.id, senderId)).then((r) => r[0]),
+			db.select({ email: user.email }).from(user).where(eq(user.id, receiverId)).then((r) => r[0]),
+		]);
+
+		if (receiver?.email) {
+			sendNewMessageEmail({
+				email: receiver.email,
+				senderName: sender?.name || "A user",
+				content,
+				url: `${process.env.VITE_APP_URL || "https://sayaratak.com"}/en/dashboard/messages`,
+			}).catch(() => {});
+		}
+	}
 }
 
 export const chatService = {
@@ -158,6 +210,7 @@ export const chatService = {
 		listingId: string,
 		content: string,
 		clientMessageId?: string,
+		server?: unknown,
 	) {
 		const [listing] = await db
 			.select()
@@ -185,7 +238,7 @@ export const chatService = {
 			);
 		}
 
-		return db.transaction(async (tx) => {
+		const result = await db.transaction(async (tx) => {
 			let conversation = existingConversation;
 
 			if (!conversation) {
@@ -230,6 +283,19 @@ export const chatService = {
 				isNewConversation: !existingConversation,
 			};
 		});
+
+		// The starter is always the buyer (self-messaging is blocked above), so
+		// the seller is always the recipient of a new inquiry.
+		await notifyNewMessage(
+			result.conversation.sellerId,
+			userId,
+			content,
+			result.conversation.id,
+			result.message,
+			server,
+		);
+
+		return result;
 	},
 
 	async getMessages(conversationId: string, userId: string, page = 1, limit = 30) {
@@ -327,29 +393,7 @@ export const chatService = {
 		const receiverId =
 			conv.buyerId === senderId ? conv.sellerId : conv.buyerId;
 
-		// Broadcast via WebSocket
-		let deliveredViaWs = false;
-		const wsServer = server as BunServerWithPublish | undefined;
-		if (wsServer && typeof wsServer.publish === "function") {
-			const recipientCount = wsServer.publish(
-				`user_${receiverId}`,
-				JSON.stringify({
-					type: "chat_message",
-					data: msgResponse,
-				}),
-			);
-			if (typeof recipientCount === "number" && recipientCount > 0) {
-				deliveredViaWs = true;
-			}
-		}
-
-		// Fallback Push Notification if user is offline
-		if (!deliveredViaWs) {
-			await sendPushNotification(receiverId, "New Message", content, {
-				type: "chat",
-				conversationId,
-			});
-		}
+		await notifyNewMessage(receiverId, senderId, content, conversationId, msgResponse, server);
 
 		return msgResponse;
 	},
