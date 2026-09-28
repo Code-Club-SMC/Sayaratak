@@ -97,6 +97,35 @@ describe("Social & Moderation Endpoints (Favorites, Reviews, Reports)", () => {
 		expect(l.favoriteCount).toBe(0);
 	});
 
+	test("GET /favorites/:listingId requires auth", async () => {
+		getSession.mockReset();
+		const res = await favoritesApp.request(`/${listingId}`);
+		expect(res.status).toBe(401);
+	});
+
+	test("GET /favorites/:listingId reflects membership state", async () => {
+		const [usr] = await db.select().from(user).where(eq(user.name, "User 1")).limit(1);
+		getSession.mockResolvedValue({ session: { id: "s1" }, user: { id: usr.id, role: "user" } });
+
+		const before = await favoritesApp.request(`/${listingId}`);
+		expect(before.status).toBe(200);
+		expect((await before.json()).favorited).toBe(false);
+
+		await favoritesApp.request(`/${listingId}`, {
+			method: "POST",
+		});
+
+		const after = await favoritesApp.request(`/${listingId}`);
+		expect(after.status).toBe(200);
+		expect((await after.json()).favorited).toBe(true);
+	});
+
+	test("POST /favorites/:listingId requires auth", async () => {
+		getSession.mockReset();
+		const res = await favoritesApp.request(`/${listingId}`, { method: "POST" });
+		expect(res.status).toBe(401);
+	});
+
 	// --- REVIEWS ---
 	test("POST /reviews leaves a review and updates average", async () => {
 		const [usr] = await db.select().from(user).where(eq(user.name, "User 1")).limit(1);
