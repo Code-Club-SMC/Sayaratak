@@ -838,6 +838,10 @@ describe("Listings Engine Endpoints", () => {
 			body: JSON.stringify({ type: "phone" }),
 		});
 		expect(res.status).toBe(200);
+
+		// Verify counter incremented in database
+		const [updated] = await db.select().from(listings).where(eq(listings.id, listing.id));
+		expect(updated.phoneClickCount).toBe(1);
 	});
 
 	test("POST /listings/:id/clicks still accepts view clicks regardless of contact permission", async () => {
@@ -848,5 +852,9 @@ describe("Listings Engine Endpoints", () => {
 			body: JSON.stringify({ type: "view" }),
 		});
 		expect(res.status).toBe(200);
+
+		// Verify counter incremented in database
+		const [updated] = await db.select().from(listings).where(eq(listings.id, listing.id));
+		expect(updated.viewCount).toBe(1);
 	});
 });

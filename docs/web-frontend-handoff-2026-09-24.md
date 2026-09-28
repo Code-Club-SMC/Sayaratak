@@ -243,3 +243,16 @@ Current gate:
 - Owner-facing reads (`/listings/me`, `/listings/manage/:id`) keep the raw contact fields for
   editing, but also no longer expose the account login phone.
 - Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).
+
+### Listing-Conversation Flow — Task 4 Completed
+
+- Added `CONTACT_METHOD_NOT_PERMITTED` error entry to `ERROR_DICTIONARY` (en/ar).
+- Gated `POST /listings/:id/clicks` phone/whatsapp analytics: now require `status === "available"`
+  AND that method's enabled flag. View clicks remain ungated.
+- Added 4 tests: rejected phone (disabled), rejected whatsapp (closed listing), accepted phone
+  (permitted), view always allowed. All tests verify actual counter increments in database.
+- Fixed profiles.test.ts regression: the analytics test was running against a listing with
+  `status: "reserved"` (set by earlier test). Created dedicated test listing with correct
+  status/contact fields instead of reusing mutated fixture, preserving true whatsapp-click
+  coverage.
+- Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).
