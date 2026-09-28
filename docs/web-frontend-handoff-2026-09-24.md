@@ -256,3 +256,14 @@ Current gate:
   status/contact fields instead of reusing mutated fixture, preserving true whatsapp-click
   coverage.
 - Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).
+
+### Listing-Conversation Flow — Task 5 Completed
+
+- Added `GET /api/v1/favorites/:listingId` endpoint returning `{ favorited: boolean }` for
+  frontend to check whether current user has favorited a specific listing without fetching
+  entire favorites list.
+- Implemented `favoritesService.isFavorited(userId, listingId)` method using same Drizzle
+  query patterns as existing `addFavorite`/`removeFavorite` methods.
+- Added missing 401 auth-boundary tests for `GET /favorites/:listingId` and `POST /favorites/:listingId`
+  per AGENTS.md section 7 testing standards (every endpoint requires auth test).
+- Verification: `cd api && bun test tests/social.test.ts` (13 tests pass), `cd api && bun test` (149 tests pass, no regressions).
