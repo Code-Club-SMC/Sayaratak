@@ -243,13 +243,19 @@ optional fields):
 
 ```ts
 	contactPhone: z.string().trim().min(6).max(20).optional(),
-	contactPhoneEnabled: z.boolean().optional().default(false),
+	contactPhoneEnabled: z.boolean().optional(),
 	contactWhatsapp: z.string().trim().min(6).max(20).optional(),
-	contactWhatsappEnabled: z.boolean().optional().default(false),
+	contactWhatsappEnabled: z.boolean().optional(),
 ```
 
-`updateListingSchema` is `createListingSchema.partial()`, so it picks these up automatically —
-no separate edit needed there.
+**Do not add `.default(false)` to the two boolean fields.** `updateListingSchema` is
+`createListingSchema.partial()` — under Zod v4, a `.default()` still fires when the key is
+omitted even through `.partial()`, which would make every `PUT` that omits these keys parse them
+as `false` and silently reset previously-granted consent (verified empirically; this bit a first
+implementation of this task). Plain `.optional()` correctly yields `undefined` when omitted,
+which is what `updateListing`'s `body.contactPhoneEnabled ?? existing.contactPhoneEnabled` merge
+(Step 5 below) needs. `createListing`'s `insertData` already applies `body.contactPhoneEnabled ??
+false` explicitly (Step 5 below), so create-time defaulting is unaffected.
 
 - [ ] **Step 4: Add the ERROR_DICTIONARY entries**
 
@@ -496,15 +502,10 @@ function withPublicContact<T extends ContactableRow>(
 }
 ```
 
-Add the four raw contact columns to `publicListingSelection` so they're available to compute
-`contact` (they get stripped by `withPublicContact` before the response leaves the service):
-
-```ts
-	contactPhone: listings.contactPhone,
-	contactPhoneEnabled: listings.contactPhoneEnabled,
-	contactWhatsapp: listings.contactWhatsapp,
-	contactWhatsappEnabled: listings.contactWhatsappEnabled,
-```
+Note: `publicListingSelection` already spreads `...listingResponseFields`, and Task 2 already
+added the four raw contact columns to `listingResponseFields` — so `publicListingSelection`
+already includes them and needs no separate edit here. Do not add them a second time (that would
+be a duplicate object key).
 
 - [ ] **Step 4: Remove `user.phone` and fix the lifecycle gate in `getListingById`**
 
@@ -1160,8 +1161,9 @@ export type ChatPaginationQuery = z.infer<typeof chatPaginationQuerySchema>;
 
 - [ ] **Step 7: Implement the transactional service method**
 
-In `api/src/services/chat.service.ts`, add `ForbiddenError` to the existing error import, and
-add near the top of the file (after the `BunServerWithPublish` type):
+In `api/src/services/chat.service.ts`, `ForbiddenError` is already in the existing error import
+(`import { NotFoundError, ForbiddenError, BadRequestError } from "../lib/errors";`) — no import
+change needed there. Add near the top of the file (after the `BunServerWithPublish` type):
 
 ```ts
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -1538,12 +1540,14 @@ Run: `cd api && bun test tests/chat.test.ts`
 
 - [ ] **Step 3: Implement pagination + unread + safe summaries**
 
-In `api/src/services/chat.service.ts`, add `alias` to the `drizzle-orm/pg-core` import (or add
-a new import line if this file doesn't already import from there) and import `listings`:
+In `api/src/services/chat.service.ts`: `listings` is already imported
+(`import { listings } from "../db/schemas/listing-schema";`) — do not add it again. The existing
+`import { and, desc, eq, or } from "drizzle-orm";` line is missing `sql`, which the code below
+needs — change it to `import { and, desc, eq, or, sql } from "drizzle-orm";`. Also add a new
+import line for `alias`:
 
 ```ts
 import { alias } from "drizzle-orm/pg-core";
-import { listings } from "../db/schemas/listing-schema";
 ```
 
 Add near the top of the file:
@@ -1865,7 +1869,10 @@ Append to the handoff:
 
 **Interfaces:**
 - Consumes: `contactPhone`/`contactPhoneEnabled`/`contactWhatsapp`/`contactWhatsappEnabled` on
-  `ListingMutationPayload` (added in Task 14 alongside the rest of `ListingDetail`).
+  `ListingMutationPayload` and on `ListingDetail`/`managedListingDetailQueryOptions` — both added
+  in Task 14, Step 1. **Execution order note: run Task 14 before this task**, even though this
+  task is numbered earlier — `fromListingDetail` below reads fields Task 14 introduces, and
+  writing this task first would not type-check.
 - Produces: the same four fields on `ListingFormValues`, `defaultListingFormValues`,
   `toListingMutationPayload`, and `fromListingDetail`.
 
@@ -2480,8 +2487,24 @@ navigate({
 ```
 
 (if unauthenticated, use the same `getSafeRedirectPath`-driven login redirect pattern as the
-favorite button first). The actual send-and-navigate-to-thread behavior is implemented in Task
-16 (the inbox route reads `startListingId` from its search params).
+favorite button first). For this to type-check now (TanStack Router validates `search` against
+the target route's schema at the call site), also add the search-param declaration to the
+messages route in this same step:
+
+```ts
+import { z } from "zod";
+```
+
+```ts
+export const Route = createFileRoute("/$locale/_dashboard/dashboard/messages")({
+	validateSearch: z.object({ startListingId: z.string().optional() }),
+	component: MessagesPage,
+});
+```
+
+This is only the typed param declaration — the actual compose-and-send behavior that reads
+`startListingId` is built in Task 16 (which builds on this same `validateSearch`, not a second
+one — Task 16 must not re-declare it).
 
 - [ ] **Step 7: Verify**
 
@@ -2757,18 +2780,11 @@ This task and Task 17 both land in the same file; they're split because this tas
 from a listing with something to say" and Task 17 is "the general inbox experience," but do them
 in the same sitting since Task 17 depends on this task's route shape.
 
-- [ ] **Step 1: Accept `startListingId` as a route search param**
+- [ ] **Step 1: Confirm the `startListingId` route search param is in place**
 
-In `web/src/routes/$locale/_dashboard/dashboard/messages.tsx`, add:
-
-```ts
-export const Route = createFileRoute("/$locale/_dashboard/dashboard/messages")({
-	validateSearch: z.object({ startListingId: z.string().optional() }),
-	component: MessagesPage,
-});
-```
-
-(add `import { z } from "zod";` if not already present in this file).
+Task 14, Step 6 already added `validateSearch: z.object({ startListingId: z.string().optional()
+})` to this route (needed there so the listing detail page's typed `navigate()` call would
+compile). Confirm it's present — do not declare `validateSearch` a second time.
 
 - [ ] **Step 2: When `startListingId` is present and no conversation exists yet, show a compose box**
 
