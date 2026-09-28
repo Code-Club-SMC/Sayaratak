@@ -36,9 +36,9 @@ export const createListingSchema = z.object({
 	media: z.array(listingMediaItemSchema).optional(),
 	rentalPeriod: z.enum(["daily", "weekly", "monthly"]).optional(),
 	contactPhone: z.string().trim().min(6).max(20).optional(),
-	contactPhoneEnabled: z.boolean().optional().default(false),
+	contactPhoneEnabled: z.boolean().optional(),
 	contactWhatsapp: z.string().trim().min(6).max(20).optional(),
-	contactWhatsappEnabled: z.boolean().optional().default(false),
+	contactWhatsappEnabled: z.boolean().optional(),
 });
 
 export const updateListingSchema = createListingSchema.partial();

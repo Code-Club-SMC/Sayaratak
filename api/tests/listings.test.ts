@@ -427,6 +427,194 @@ describe("Listings Engine Endpoints", () => {
 		expect(json.contactPhone).not.toBe(sellerAccountPhone);
 
 		await db.delete(listings).where(eq(listings.id, json.id));
+		// Reset the fixture user's account phone so later tests in this file
+		// don't depend on the value left behind by this test.
+		await db.update(user).set({ phone: null }).where(eq(user.id, "u1"));
+	});
+
+	test("POST /api/listings rejects contactWhatsappEnabled=true with no whatsapp number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactWhatsappEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_WHATSAPP_REQUIRED");
+	});
+
+	test("POST /api/listings accepts contactWhatsappEnabled=true with a whatsapp number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactWhatsapp: "+249922222222",
+				contactWhatsappEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(201);
+		const json = (await res.json()) as Listing & {
+			contactWhatsapp: string | null;
+		};
+		expect(json.contactWhatsapp).toBe("+249922222222");
+
+		await db.delete(listings).where(eq(listings.id, json.id));
+	});
+
+	test("PUT /api/listings/:id rejects enabling phone without ever having provided a number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [draft] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Draft Hyundai Accent",
+				description: "Draft listing pending contact details",
+				price: 8000000,
+				currency: "SDG",
+				status: "draft",
+				specs: {},
+				media: [],
+			})
+			.returning();
+
+		const res = await listingsApp.request(`/${draft.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ contactPhoneEnabled: true }),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_PHONE_REQUIRED");
+
+		await db.delete(listings).where(eq(listings.id, draft.id));
+	});
+
+	test("PUT /api/listings/:id keeps contactPhoneEnabled and the stored number unchanged when omitted from an unrelated update", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [existingListing] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Available Kia Sportage",
+				description: "Listing with phone consent already granted",
+				price: 9000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				contactPhone: "+249933333333",
+				contactPhoneEnabled: true,
+			})
+			.returning();
+
+		// Unrelated edit: only price changes, contact fields are not sent at all.
+		const res = await listingsApp.request(`/${existingListing.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ price: 9500000 }),
+		});
+
+		expect(res.status).toBe(200);
+		const json = (await res.json()) as Listing & {
+			contactPhone: string | null;
+			contactPhoneEnabled: boolean;
+		};
+		expect(json.price).toBe(9500000);
+		// Previously-granted consent must survive an edit that never mentions it.
+		expect(json.contactPhoneEnabled).toBe(true);
+		expect(json.contactPhone).toBe("+249933333333");
+
+		await db.delete(listings).where(eq(listings.id, existingListing.id));
+	});
+
+	test("PUT /api/listings/:id keeps contactWhatsappEnabled and the stored number unchanged when omitted from an unrelated update", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [existingListing] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Available Kia Sportage",
+				description: "Listing with whatsapp consent already granted",
+				price: 9000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				contactWhatsapp: "+249944444444",
+				contactWhatsappEnabled: true,
+			})
+			.returning();
+
+		// Unrelated edit: only price changes, contact fields are not sent at all.
+		const res = await listingsApp.request(`/${existingListing.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ price: 9500000 }),
+		});
+
+		expect(res.status).toBe(200);
+		const json = (await res.json()) as Listing & {
+			contactWhatsapp: string | null;
+			contactWhatsappEnabled: boolean;
+		};
+		expect(json.price).toBe(9500000);
+		// Previously-granted consent must survive an edit that never mentions it.
+		expect(json.contactWhatsappEnabled).toBe(true);
+		expect(json.contactWhatsapp).toBe("+249944444444");
+
+		await db.delete(listings).where(eq(listings.id, existingListing.id));
 	});
 
 	test("PUT /api/listings/:id rejects enabling whatsapp without ever having provided a number", async () => {
