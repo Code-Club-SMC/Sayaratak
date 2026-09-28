@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { useTranslation } from "@/lib/i18n";
+import { getSafeRedirectPath } from "@/lib/safe-redirect";
 
 export const Route = createFileRoute("/$locale/_auth/login")({
 	validateSearch: z.object({
@@ -40,8 +41,11 @@ function LoginPage() {
 			return;
 		}
 
-		// Redirect to the original page or dashboard
-		window.location.href = redirectTo ?? `/${locale}/dashboard`;
+		// Redirect to the original page or dashboard — never trust `redirectTo` raw.
+		window.location.href = getSafeRedirectPath(
+			redirectTo,
+			`/${locale}/dashboard`,
+		);
 	}
 
 	async function handleSocial(provider: "google" | "facebook") {
