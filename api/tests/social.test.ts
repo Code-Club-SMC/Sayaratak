@@ -195,4 +195,25 @@ describe("Social & Moderation Endpoints (Favorites, Reviews, Reports)", () => {
 		const updated = await res.json() as typeof reports.$inferSelect;
 		expect(updated.status).toBe("resolved");
 	});
+
+	test("POST /reports requires auth", async () => {
+		getSession.mockReset();
+		const res = await reportsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId, reason: "spam" }),
+		});
+		expect(res.status).toBe(401);
+	});
+
+	test("POST /reports rejects a missing reason", async () => {
+		const [usr] = await db.select().from(user).where(eq(user.name, "User 1")).limit(1);
+		getSession.mockResolvedValue({ session: { id: "s1" }, user: { id: usr.id, role: "user" } });
+		const res = await reportsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId }),
+		});
+		expect(res.status).toBe(400);
+	});
 });
