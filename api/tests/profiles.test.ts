@@ -44,7 +44,9 @@ describe("Profiles & Listing Status Endpoints", () => {
 		
 		const [listing] = await db.insert(listings).values({
 			userId: "u_dealer2_" + uuid, categoryId: cat.id, countryId: country.id, cityId: city.id,
-			title: "Listing Profile Test", description: "Desc", price: 100, status: "available"
+			title: "Listing Profile Test", description: "Desc", price: 100, status: "available",
+			contactWhatsapp: "+249900000005",
+			contactWhatsappEnabled: true
 		}).returning();
 		listingId = listing.id;
 	});
@@ -100,13 +102,13 @@ describe("Profiles & Listing Status Endpoints", () => {
 		const res = await listingsApp.request(`/${listingId}/clicks`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ type: "whatsapp" })
+			body: JSON.stringify({ type: "view" })
 		});
 		expect(res.status).toBe(200);
 
 		// Verify increment
 		const [listing] = await db.select().from(listings).where(eq(listings.id, listingId));
-		expect(listing.whatsappClickCount).toBe(1);
+		expect(listing.viewCount).toBe(1);
 	});
 
 	test("PATCH /profiles/workshop updates images gallery and workingHours", async () => {

@@ -287,6 +287,11 @@ export const ERROR_DICTIONARY: Record<string, ErrorDefinition> = {
 		ar: "أدخل رقم واتساب قبل إظهاره للعامة.",
 		status: 400,
 	},
+	CONTACT_METHOD_NOT_PERMITTED: {
+		code: "CONTACT_METHOD_NOT_PERMITTED",
+		en: "This contact method is not available for this listing.",
+		ar: "وسيلة التواصل هذه غير متاحة لهذا الإعلان.",
+	},
 
 	// Rate Limiting & Monetization
 	TOO_MANY_REQUESTS: {

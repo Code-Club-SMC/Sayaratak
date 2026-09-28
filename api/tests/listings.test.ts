@@ -799,4 +799,54 @@ describe("Listings Engine Endpoints", () => {
 		const botData = (await botRes.json()) as { success: boolean };
 		expect(botData.success).toBe(true);
 	});
+
+	test("POST /listings/:id/clicks rejects a phone click when the listing doesn't permit it", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhoneEnabled: false,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "phone" }),
+		});
+		expect(res.status).toBe(403);
+		const json = await res.json();
+		expect(json.code).toBe("CONTACT_METHOD_NOT_PERMITTED");
+	});
+
+	test("POST /listings/:id/clicks rejects a whatsapp click on a closed (sold) listing even if the number is enabled", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "sold", {
+			contactWhatsapp: "+249900000002",
+			contactWhatsappEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "whatsapp" }),
+		});
+		expect(res.status).toBe(403);
+	});
+
+	test("POST /listings/:id/clicks accepts a permitted phone click and increments the counter", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000003",
+			contactPhoneEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "phone" }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	test("POST /listings/:id/clicks still accepts view clicks regardless of contact permission", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "sold");
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "view" }),
+		});
+		expect(res.status).toBe(200);
+	});
 });

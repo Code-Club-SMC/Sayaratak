@@ -706,6 +706,32 @@ export const listingsService = {
 			return { success: true };
 		}
 
+		if (type !== "view") {
+			const [listing] = await db
+				.select({
+					status: listings.status,
+					contactPhoneEnabled: listings.contactPhoneEnabled,
+					contactWhatsappEnabled: listings.contactWhatsappEnabled,
+				})
+				.from(listings)
+				.where(eq(listings.id, id));
+
+			if (!listing) {
+				throw new NotFoundError("Listing not found", "LISTING_NOT_FOUND");
+			}
+
+			const permitted =
+				listing.status === "available" &&
+				(type === "phone" ? listing.contactPhoneEnabled : listing.contactWhatsappEnabled);
+
+			if (!permitted) {
+				throw new ForbiddenError(
+					"This contact method is not available for this listing.",
+					"CONTACT_METHOD_NOT_PERMITTED",
+				);
+			}
+		}
+
 		if (type === "view") {
 			await db
 				.update(listings)
