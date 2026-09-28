@@ -129,6 +129,8 @@ export const favoriteKeys = {
 	all: (locale: string) => ["favorites", locale] as const,
 	list: (locale: string, page?: number) =>
 		[...favoriteKeys.all(locale), "list", page ?? 1] as const,
+	status: (locale: string, listingId: string) =>
+		[...favoriteKeys.all(locale), "status", listingId] as const,
 };
 
 // ── Chat ────────────────────────────────────────────────────────────────
