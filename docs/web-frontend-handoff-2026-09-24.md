@@ -125,7 +125,11 @@ Current gate:
 
 - Found and fixed a backend contract mismatch: public listing reads intentionally return only `available` listings, which could not support owner draft/edit management.
 - Added authenticated `GET /api/v1/listings/me` for current-user listing management reads.
-- Added authenticated `GET /api/v1/listings/manage/:id` for owner/admin listing detail reads across lifecycle statuses.
+- Added authenticated `GET /api/v1/listings/manage/:id` for owner/admin listing detail reads across lifauthenticate a seller
+and create a draft listing — reuse that exact setup, do not duplicate it).
+
+- [ ] **Step 2: Run tests to verify they fail**
+ecycle statuses.
 - Preserved public `GET /api/v1/listings/:id` behavior: non-available listings still return `410`.
 - Added backend tests for no-session, owner draft list/detail, non-owner forbidden, and public 410 behavior.
 - Updated frontend management query helpers to use `/listings/me` and `/listings/manage/:id`.

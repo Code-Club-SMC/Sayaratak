@@ -1,8 +1,11 @@
+import { user } from "../db/schemas/auth-schema";
 import { and, desc, eq, or } from "drizzle-orm";
 import { db } from "../db";
 import { conversations, messages } from "../db/schemas/communication-schema";
+import { inArray } from "drizzle-orm";
 import { listings } from "../db/schemas/listing-schema";
 import { sendPushNotification } from "../lib/fcm";
+import { sendNewMessageEmail } from "../lib/mailer";
 import { NotFoundError, ForbiddenError, BadRequestError } from "../lib/errors";
 
 type BunServerWithPublish = {
@@ -11,7 +14,7 @@ type BunServerWithPublish = {
 
 export const chatService = {
 	async listConversations(userId: string) {
-		return db
+		const convs = await db
 			.select({
 				id: conversations.id,
 				listingId: conversations.listingId,
@@ -28,6 +31,40 @@ export const chatService = {
 				),
 			)
 			.orderBy(desc(conversations.lastMessageAt));
+
+		if (convs.length === 0) return [];
+
+		const userIds = [...new Set(convs.flatMap((c) => [c.buyerId, c.sellerId]))];
+		const listingIds = [...new Set(convs.map((c) => c.listingId))];
+
+		const [users, allListings] = await Promise.all([
+			db.select({ id: user.id, name: user.name, image: user.image }).from(user).where(inArray(user.id, userIds)),
+			db.select({ id: listings.id, title: listings.title, price: listings.price, currency: listings.currency, images: listings.media }).from(listings).where(inArray(listings.id, listingIds)),
+		]);
+
+		return convs.map((c) => {
+			const otherUserId = c.buyerId === userId ? c.sellerId : c.buyerId;
+			const otherUser = users.find((u) => u.id === otherUserId);
+			const listing = allListings.find((l) => l.id === c.listingId);
+
+			return {
+				id: c.id,
+				listingId: c.listingId,
+				lastMessageAt: c.lastMessageAt,
+				unread: 0, // Mocked for now
+				user: {
+					id: otherUserId,
+					name: otherUser?.name || "Unknown",
+					avatar: otherUser?.image,
+				},
+				listing: {
+					id: listing?.id,
+					title: listing?.title || "Unknown Listing",
+					price: `${listing?.currency || "SDG"} ${listing?.price || 0}`,
+					image: Array.isArray(listing?.images) && listing.images[0] ? listing.images[0] : undefined,
+				},
+			};
+		});
 	},
 
 	async startConversation(userId: string, listingId: string) {
@@ -180,6 +217,22 @@ export const chatService = {
 				type: "chat",
 				conversationId,
 			});
+
+			const [sender, receiver] = await Promise.all([
+				db.select({ name: user.name }).from(user).where(eq(user.id, senderId)).then(r => r[0]),
+				db.select({ email: user.email }).from(user).where(eq(user.id, receiverId)).then(r => r[0]),
+			]);
+
+			if (receiver?.email) {
+				if (process.env.NODE_ENV !== "test") {
+					sendNewMessageEmail({
+					email: receiver.email,
+					senderName: sender?.name || "A user",
+					content,
+					url: `${process.env.VITE_APP_URL || "https://sayaratak.com"}/en/dashboard/messages`,
+					}).catch(() => {});
+				}
+			}
 		}
 
 		return msgResponse;

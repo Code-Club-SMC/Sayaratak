@@ -84,3 +84,36 @@ export async function sendResetPasswordEmail({
 		`,
 	});
 }
+
+export async function sendNewMessageEmail({
+	email,
+	senderName,
+	content,
+	url,
+}: {
+	email: string;
+	senderName: string;
+	content: string;
+	url: string;
+}) {
+	await transport.sendMail({
+		from: fromAddress,
+		to: email,
+		subject: `New Message from ${senderName}`,
+		html: `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #ffffff;">
+				<h2 style="color: #1e3a8a; margin-top: 0;">Sayaratak (سيارتك)</h2>
+				<h3 style="color: #111827; font-size: 18px;">You have a new message</h3>
+				<p style="color: #4b5563; font-size: 15px; line-height: 1.5;"><strong>${senderName}</strong> sent you a message:</p>
+				<div style="margin: 24px 0; padding: 16px; background-color: #f3f4f6; border-radius: 8px;">
+					<p style="color: #111827; font-size: 15px; line-height: 1.5; margin: 0;">${content}</p>
+				</div>
+				<div style="margin: 24px 0;">
+					<a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; font-weight: 600; border-radius: 6px; font-size: 15px;">
+						View Conversation
+					</a>
+				</div>
+			</div>
+		`,
+	});
+}

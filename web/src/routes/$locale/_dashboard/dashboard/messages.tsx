@@ -1,105 +1,83 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Filter, MessageSquare, MoreVertical, Search } from "lucide-react";
+import { createFileRoute, useRouterState } from "@tanstack/react-router";
+import { MessageSquare, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { conversationsQueryOptions, conversationMessagesQueryOptions } from "@/lib/query-options/chat";
+import { listingDetailQueryOptions } from "@/lib/query-options/listings";
+import { useState, useEffect } from "react";
+import { apiPost } from "@/lib/api";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/$locale/_dashboard/dashboard/messages")({
 	component: MessagesPage,
 });
 
-// Mock data based on SCR-047
-const mockConversations = [
-	{
-		id: 1,
-		user: {
-			name: "Mohamed Hassan",
-			avatar: "/images/users/user1.png",
-			isOnline: true,
-		},
-		lastMessage: "Is this car still available?",
-		listing: {
-			title: "Toyota Corolla Altis 1.8 X 2021",
-			price: "SDG 24,750,000",
-			image: "/images/cars/corolla.png",
-		},
-		time: "10:45 AM",
-		unread: 2,
-	},
-	{
-		id: 2,
-		user: {
-			name: "Aisha Mohammed",
-			avatar: "/images/users/user2.png",
-			isOnline: true,
-		},
-		lastMessage: "Can you share more photos?",
-		listing: {
-			title: "Bajaj RE Compact 2019",
-			price: "SDG 4,800,000",
-			image: "/images/cars/bajaj.png",
-		},
-		time: "Yesterday",
-		unread: 1,
-	},
-	{
-		id: 3,
-		user: {
-			name: "Al-Waha Trucks",
-			avatar: "/images/users/user3.png",
-			isOnline: true,
-		},
-		lastMessage: "Thanks! I'll contact you soon.",
-		listing: {
-			title: "Isuzu NPR 85 2019",
-			price: "SDG 115,000,000",
-			image: "/images/cars/isuzu.png",
-		},
-		time: "Yesterday",
-		unread: 0,
-	},
-	{
-		id: 4,
-		user: {
-			name: "Omar Saleh",
-			avatar: "/images/users/user4.png",
-			isOnline: false,
-		},
-		lastMessage: "Do you offer delivery to Omdurman?",
-		listing: {
-			title: "Honda CB 150F 2021",
-			price: "SDG 2,700,000",
-			image: "/images/cars/honda-cb.png",
-		},
-		time: "May 17",
-		unread: 3,
-	},
-	{
-		id: 5,
-		user: {
-			name: "Sara Store (Spare Parts)",
-			avatar: null,
-			isOnline: false,
-			initials: "SS",
-		},
-		lastMessage: "Part is in stock and ready.",
-		listing: {
-			title: "Brake Disc - Toyota Hilux",
-			price: "SDG 65,000",
-			image: "/images/parts/brake.png",
-		},
-		time: "May 16",
-		unread: 0,
-	},
-];
-
 function MessagesPage() {
-	const { t } = useTranslation();
+	const { t, locale } = useTranslation();
+	const routerState = useRouterState();
+	const queryClient = useQueryClient();
+	const { data: session } = useSession();
+
+	const newListingId = (routerState.location.state as any)?.newConversation?.listingId;
+
+	const { data: conversations = [], isLoading } = useQuery(conversationsQueryOptions());
+
+	const [activeConvId, setActiveConvId] = useState<string | null>(null);
+	const [activeVirtualListingId, setActiveVirtualListingId] = useState<string | null>(null);
+	const [messageText, setMessageText] = useState("");
+
+	useEffect(() => {
+		if (newListingId && conversations.length > 0 && !activeConvId) {
+			const existing = conversations.find(c => c.listingId === newListingId);
+			if (existing) {
+				setActiveConvId(existing.id);
+			} else {
+				setActiveVirtualListingId(newListingId);
+				setActiveConvId(null);
+			}
+		} else if (!activeConvId && conversations.length > 0 && !newListingId) {
+			setActiveConvId(conversations[0].id);
+		} else if (newListingId && conversations.length === 0 && !isLoading) {
+			setActiveVirtualListingId(newListingId);
+		}
+	}, [newListingId, conversations, activeConvId, isLoading]);
+
+	const { data: virtualListing } = useQuery({
+		...listingDetailQueryOptions(locale, activeVirtualListingId || ""),
+		enabled: !!activeVirtualListingId,
+	});
+
+	const { data: messages = [] } = useQuery({
+		...conversationMessagesQueryOptions(activeConvId || ""),
+		enabled: !!activeConvId,
+		refetchInterval: 5000,
+	});
+
+	const sendMessageMutation = useMutation({
+		mutationFn: async (content: string) => {
+			if (activeConvId) {
+				return apiPost(`/api/chat/${activeConvId}/messages`, { content });
+			} else if (activeVirtualListingId) {
+				const res = await apiPost("/api/chat", { listingId: activeVirtualListingId });
+				const convId = (res as any).id;
+				setActiveConvId(convId);
+				setActiveVirtualListingId(null);
+				return apiPost(`/api/chat/${convId}/messages`, { content });
+			}
+		},
+		onSuccess: () => {
+			setMessageText("");
+			queryClient.invalidateQueries({ queryKey: ["conversations"] });
+		},
+	});
+
+	const activeConversation = conversations.find(c => c.id === activeConvId);
 
 	return (
 		<div className="space-y-6 h-[calc(100vh-140px)] flex flex-col">
-			{/* Header */}
 			<div className="flex flex-col md:flex-row md:items-start justify-between gap-4 shrink-0">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight mb-1">
@@ -109,120 +87,106 @@ function MessagesPage() {
 						Messages from buyers, sellers and service providers.
 					</p>
 				</div>
-				<div className="flex flex-wrap items-center gap-3">
-					<div className="relative w-64">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-						<Input
-							placeholder="Search conversations..."
-							className="pl-9 bg-white"
-						/>
-					</div>
-					<Button
-						variant="outline"
-						className="gap-2 bg-white text-blue-600 border-blue-200 hover:bg-blue-50"
-					>
-						<Filter className="size-4" /> Unread{" "}
-						<span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full ml-1">
-							8
-						</span>
-					</Button>
-					<Button variant="outline" size="icon" className="bg-white shrink-0">
-						<MoreVertical className="size-4" />
-					</Button>
-				</div>
 			</div>
 
-			{/* Main Chat Layout */}
 			<div className="flex-1 min-h-0 bg-white border border-border rounded-xl shadow-sm flex overflow-hidden">
-				{/* Left List */}
-				<div className="w-full md:w-[500px] border-r border-border flex flex-col shrink-0">
+				<div className="w-full md:w-[350px] lg:w-[450px] border-r border-border flex flex-col shrink-0">
 					<div className="flex-1 overflow-y-auto p-4 space-y-1">
-						{mockConversations.map((conv) => (
+						{activeVirtualListingId && !activeConvId && (
+							<div className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 border border-blue-200 cursor-pointer">
+								<div className="flex-1 min-w-0">
+									<h4 className="font-bold text-sm truncate text-blue-700">New Conversation</h4>
+									<p className="text-xs text-blue-600">{virtualListing?.listing.title || "Loading..."}</p>
+								</div>
+							</div>
+						)}
+						{conversations.map((conv) => (
 							<div
 								key={conv.id}
-								className="flex items-center gap-4 p-4 rounded-xl hover:bg-slate-50 cursor-pointer border border-transparent hover:border-border transition-colors"
+								onClick={() => { setActiveConvId(conv.id); setActiveVirtualListingId(null); }}
+								className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer border transition-colors ${activeConvId === conv.id ? 'bg-slate-100 border-border' : 'hover:bg-slate-50 border-transparent hover:border-border'}`}
 							>
 								<div className="relative shrink-0">
 									<Avatar className="size-12 border border-border shadow-sm">
-										<AvatarImage src={conv.user.avatar || undefined} />
+										<AvatarImage src={conv.user?.avatar || undefined} />
 										<AvatarFallback className="bg-blue-50 text-blue-700 font-semibold">
-											{conv.user.initials || "U"}
+											{conv.user?.name?.[0]?.toUpperCase() || "U"}
 										</AvatarFallback>
 									</Avatar>
-									{conv.user.isOnline && (
-										<div className="absolute bottom-0 right-0 size-3.5 bg-green-500 border-2 border-white rounded-full" />
-									)}
 								</div>
 
 								<div className="flex-1 min-w-0">
 									<div className="flex items-center justify-between mb-1">
 										<h4 className="font-bold text-sm truncate">
-											{conv.user.name}
+											{conv.user?.name || "User"}
 										</h4>
-										<span className="text-xs text-slate-500 shrink-0 ml-2">
-											{conv.time}
-										</span>
 									</div>
-									<p className="text-sm text-slate-600 truncate">
-										{conv.lastMessage}
-									</p>
-								</div>
-
-								{/* Listing Preview Snippet */}
-								<div className="hidden sm:flex items-center gap-2 pl-4 border-l border-border shrink-0 w-[180px]">
-									<div className="size-10 rounded-md overflow-hidden bg-slate-100 shrink-0">
-										{conv.listing.image && (
-											<img
-												src={conv.listing.image}
-												alt=""
-												className="object-cover w-full h-full"
-											/>
-										)}
-									</div>
-									<div className="min-w-0">
-										<div className="text-xs font-semibold truncate">
-											{conv.listing.title}
-										</div>
-										<div className="text-[10px] text-blue-600 font-bold truncate">
-											{conv.listing.price}
-										</div>
+									<div className="text-xs font-semibold truncate text-slate-600">
+										{conv.listing?.title}
 									</div>
 								</div>
-
-								{conv.unread > 0 ? (
-									<div className="size-6 shrink-0 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center ml-2">
-										{conv.unread}
-									</div>
-								) : (
-									<div className="w-6 shrink-0 ml-2" />
-								)}
 							</div>
 						))}
 					</div>
-					<div className="p-4 border-t border-border flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
-						<span>Showing 1 to 5 of 28 conversations</span>
-						<button
-							type="button"
-							className="text-blue-600 font-bold hover:underline"
-						>
-							Load more ↓
-						</button>
-					</div>
 				</div>
 
-				{/* Right Empty State */}
-				<div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-slate-50/50">
-					<div className="relative mb-6">
-						<div className="absolute inset-0 bg-blue-100 blur-2xl rounded-full opacity-50" />
-						<div className="size-32 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center relative shadow-sm">
-							<MessageSquare className="size-12 text-blue-500" />
+				{activeConvId || activeVirtualListingId ? (
+					<div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
+						<div className="p-4 bg-white border-b border-border flex items-center justify-between shrink-0">
+							<div className="flex items-center gap-3">
+								<div>
+									<h3 className="font-bold">{activeConversation ? activeConversation.user?.name : "New Conversation"}</h3>
+									<p className="text-xs text-slate-500">
+										{activeConversation ? activeConversation.listing?.title : virtualListing?.listing.title} - 
+										{activeConversation ? activeConversation.listing?.price : `${virtualListing?.listing.currency || "SDG"} ${virtualListing?.listing.price}`}
+									</p>
+								</div>
+							</div>
+						</div>
+						
+						<div className="flex-1 overflow-y-auto p-4 space-y-4">
+							{messages.map((msg) => {
+								const isMe = msg.senderId === session?.user?.id;
+								return (
+									<div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+										<div className={`max-w-[70%] p-3 rounded-2xl text-sm ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-900 rounded-tl-sm'}`}>
+											{msg.content}
+										</div>
+									</div>
+								);
+							})}
+						</div>
+
+						<div className="p-4 bg-white border-t border-border shrink-0">
+							<form 
+								onSubmit={(e) => {
+									e.preventDefault();
+									if (messageText.trim()) sendMessageMutation.mutate(messageText);
+								}}
+								className="flex items-center gap-2"
+							>
+								<Input
+									value={messageText}
+									onChange={(e) => setMessageText(e.target.value)}
+									placeholder="Type a message..."
+									className="flex-1 bg-slate-50"
+									disabled={sendMessageMutation.isPending}
+								/>
+								<Button type="submit" size="icon" disabled={!messageText.trim() || sendMessageMutation.isPending} className="shrink-0 bg-blue-600 hover:bg-blue-700">
+									<Send className="size-4" />
+								</Button>
+							</form>
 						</div>
 					</div>
-					<h3 className="text-2xl font-bold mb-2">Select a conversation</h3>
-					<p className="text-slate-500 max-w-sm">
-						Choose a conversation from the list to view your messages.
-					</p>
-				</div>
+				) : (
+					<div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+						<MessageSquare className="size-12 text-slate-300 mb-4" />
+						<h3 className="text-xl font-bold mb-2">Select a conversation</h3>
+						<p className="text-slate-500 max-w-sm">
+							Choose a conversation from the list to view your messages.
+						</p>
+					</div>
+				)}
 			</div>
 		</div>
 	);

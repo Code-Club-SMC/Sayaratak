@@ -544,7 +544,7 @@ describe("Admin Listing Moderation", () => {
 		const getListingsRes = await adminApp.request(`/listings?status=pending`);
 		expect(getListingsRes.status).toBe(200);
 		const pendingListings = await getListingsRes.json() as (typeof listings.$inferSelect)[];
-		expect(pendingListings.some(l => l.id === listing.id)).toBe(true);
+		console.log(pendingListings); expect(pendingListings.some(l => l.id === listing.id)).toBe(true);
 
 		// 2. PATCH invalid status -> 400
 		const badStatusRes = await adminApp.request(`/listings/${listing.id}/moderate`, {
