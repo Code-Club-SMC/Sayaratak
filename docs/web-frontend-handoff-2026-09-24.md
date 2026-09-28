@@ -229,3 +229,17 @@ Current gate:
 - Added `CONTACT_PHONE_REQUIRED`/`CONTACT_WHATSAPP_REQUIRED` to `ERROR_DICTIONARY` (en/ar).
 - Confirmed no code path copies `user.phone` (the account login number) into a new listing.
 - Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).
+
+### Listing-Conversation Flow — Task 3 Completed
+
+- Removed `user.phone` (account login phone) from every listing read path — public list,
+  public detail, and managed detail no longer expose it.
+- Added a `contact: { phone, whatsapp, canMessage }` allowlisted field to public listing
+  responses, computed from the listing's own opted-in contact fields and gated on
+  `status === "available"`.
+- Changed public detail lifecycle: available/reserved/sold/rented now return 200 (closed
+  statuses read-only, `contact.canMessage: false`); draft/pending/rejected/banned now return
+  404 instead of the old blanket 410-for-anything-non-available behavior.
+- Owner-facing reads (`/listings/me`, `/listings/manage/:id`) keep the raw contact fields for
+  editing, but also no longer expose the account login phone.
+- Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).

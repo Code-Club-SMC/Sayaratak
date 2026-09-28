@@ -137,6 +137,44 @@ const publicListingSelection = {
 	},
 };
 
+const PUBLIC_STATUSES = ["available", "reserved", "sold", "rented"] as const;
+
+type ContactableRow = {
+	status: string;
+	contactPhone: string | null;
+	contactPhoneEnabled: boolean;
+	contactWhatsapp: string | null;
+	contactWhatsappEnabled: boolean;
+};
+
+// Allowlists the seller's per-listing, opted-in contact fields and strips the raw
+// contactPhone*/contactWhatsapp* columns from public responses (AGENTS.md §6: explicit
+// field allowlists). Contact is only surfaced while the listing is actually available;
+// closed listings (reserved/sold/rented) read as canMessage: false with no contact info.
+function withPublicContact<T extends ContactableRow>(
+	row: T,
+): Omit<T, "contactPhone" | "contactPhoneEnabled" | "contactWhatsapp" | "contactWhatsappEnabled"> & {
+	contact: { phone: string | null; whatsapp: string | null; canMessage: boolean };
+} {
+	const {
+		contactPhone,
+		contactPhoneEnabled,
+		contactWhatsapp,
+		contactWhatsappEnabled,
+		...rest
+	} = row;
+	const canMessage = row.status === "available";
+	return {
+		...rest,
+		contact: {
+			phone: canMessage && contactPhoneEnabled && contactPhone ? contactPhone : null,
+			whatsapp:
+				canMessage && contactWhatsappEnabled && contactWhatsapp ? contactWhatsapp : null,
+			canMessage,
+		},
+	};
+}
+
 function buildFilterConditions(query: Record<string, any>) {
 	const conditions = [];
 
@@ -285,7 +323,7 @@ export const listingsService = {
 			.where(whereClause);
 
 		return {
-			items: results,
+			items: results.map(withPublicContact),
 			total: Number(total),
 			page,
 			limit,
@@ -373,7 +411,6 @@ export const listingsService = {
 					name: user.name,
 					image: user.image,
 					accountType: user.accountType,
-					phone: user.phone,
 					isVerified: dealerships.isVerified,
 				},
 			})
@@ -384,13 +421,11 @@ export const listingsService = {
 			.leftJoin(dealerships, eq(listings.userId, dealerships.userId))
 			.where(eq(listings.id, id));
 
-		if (!listing) {
+		if (!listing || !PUBLIC_STATUSES.includes(listing.status as (typeof PUBLIC_STATUSES)[number])) {
 			throw new NotFoundError("Listing not found", "LISTING_NOT_FOUND");
 		}
-		if (listing.status !== "available") {
-			throw new GoneError("Listing is no longer available", "LISTING_GONE");
-		}
-		return listing;
+
+		return withPublicContact(listing);
 	},
 
 	async getManagedListingById(id: string, currentUser: SessionUser) {
@@ -402,7 +437,6 @@ export const listingsService = {
 					name: user.name,
 					image: user.image,
 					accountType: user.accountType,
-					phone: user.phone,
 					isVerified: dealerships.isVerified,
 				},
 			})

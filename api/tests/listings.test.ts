@@ -87,6 +87,53 @@ describe("Listings Engine Endpoints", () => {
 	let cityId = "";
 	let createdListingId = "";
 
+	// This file authenticates via the `getSession` mock rather than real cookies, so
+	// `sellerCookie` stands in for "the seller identity to authenticate as" — it's the
+	// fixture user id fed into the mocked session, not a literal cookie header.
+	const sellerCookie = "u1";
+
+	// Creates a listing via the authenticated create endpoint, then forces its status
+	// directly in the DB so lifecycle states unreachable through the public API
+	// (pending/rejected/banned are admin-moderation-only) can still be exercised here.
+	async function createListingWithStatus(
+		cookie: string,
+		status: string,
+		overrides: Record<string, unknown> = {},
+	) {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: cookie, role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Lifecycle Fixture Listing",
+				description: "Listing created to exercise lifecycle status transitions",
+				price: 5000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				...overrides,
+			}),
+		});
+		const created = (await res.json()) as Listing;
+
+		if (created.status !== status) {
+			await db
+				.update(listings)
+				.set({ status })
+				.where(eq(listings.id, created.id));
+		}
+
+		return { ...created, status };
+	}
+
 	test("Setup - get taxonomy and locations for foreign keys", async () => {
 		// Ensure user exists for foreign key constraint
 		await db
@@ -256,17 +303,6 @@ describe("Listings Engine Endpoints", () => {
 		expect(listing.city?.id).toBe(cityId);
 		expect(listing.user?.id).toBe("u1");
 		expect(listing.user?.name).toBe("Test User");
-
-		await db
-			.update(listings)
-			.set({ status: "sold" })
-			.where(eq(listings.id, createdListingId));
-		const goneRes = await listingsApp.request(`/${createdListingId}`);
-		expect(goneRes.status).toBe(410);
-		await db
-			.update(listings)
-			.set({ status: "available" })
-			.where(eq(listings.id, createdListingId));
 	});
 
 	test("GET /api/listings/me and /manage/:id expose owner drafts without weakening public reads", async () => {
@@ -314,8 +350,9 @@ describe("Listings Engine Endpoints", () => {
 		expect(ownerDetail.id).toBe(draftListing.id);
 		expect(ownerDetail.status).toBe("draft");
 
+		// Draft listings never became public: 404, not the old blanket 410.
 		const publicDetailRes = await listingsApp.request(`/${draftListing.id}`);
-		expect(publicDetailRes.status).toBe(410);
+		expect(publicDetailRes.status).toBe(404);
 
 		getSession.mockResolvedValue({
 			session: { id: "s2" },
@@ -328,6 +365,41 @@ describe("Listings Engine Endpoints", () => {
 		expect(nonOwnerDetailRes.status).toBe(403);
 
 		await db.delete(listings).where(eq(listings.id, draftListing.id));
+	});
+
+	test("GET /listings/:id is 404 for draft/pending/rejected/banned listings", async () => {
+		for (const status of ["draft", "pending", "rejected", "banned"]) {
+			const listing = await createListingWithStatus(sellerCookie, status);
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(404);
+		}
+	});
+
+	test("GET /listings/:id returns 200 and a marked, contact-closed detail for reserved/sold/rented", async () => {
+		for (const status of ["reserved", "sold", "rented"]) {
+			const listing = await createListingWithStatus(sellerCookie, status);
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(200);
+			const json = await res.json();
+			expect(json.status).toBe(status);
+			expect(json.contact.canMessage).toBe(false);
+			expect(json.contact.phone).toBeNull();
+			expect(json.contact.whatsapp).toBeNull();
+		}
+	});
+
+	test("GET /listings/:id never returns the account login phone, only opted-in listing contact fields", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000001",
+			contactPhoneEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}`);
+		const json = await res.json();
+		expect(json.contact.phone).toBe("+249900000001");
+		expect(json.contact.whatsapp).toBeNull(); // whatsapp was never enabled
+		expect(json.user.phone).toBeUndefined();
+		expect(json.contactPhone).toBeUndefined(); // raw field must not leak on the public path
+		expect(json.contactPhoneEnabled).toBeUndefined();
 	});
 
 	test("PUT /api/listings/:id updates listing if owner", async () => {
