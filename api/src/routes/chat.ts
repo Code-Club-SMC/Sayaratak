@@ -60,12 +60,17 @@ chatApp.get("/", requireAuth(), async (c) => {
 });
 
 // POST /api/chat
-// Start or get a conversation
+// Start a conversation with its first message, or append to an existing one — atomic.
 chatApp.post("/", requireAuth(), zValidator("json", startChatSchema), async (c) => {
 	const user = c.get("user");
-	const { listingId } = c.req.valid("json");
-	const { conversation, isNew } = await chatService.startConversation(user.id, listingId);
-	return c.json(conversation, isNew ? 201 : 200);
+	const { listingId, content, clientMessageId } = c.req.valid("json");
+	const result = await chatService.startConversationWithMessage(
+		user.id,
+		listingId,
+		content,
+		clientMessageId,
+	);
+	return c.json(result, result.isNewConversation ? 201 : 200);
 });
 
 // GET /api/chat/:id/messages
@@ -93,13 +98,19 @@ chatApp.post(
 		}
 
 		const { id } = c.req.valid("param");
-		const { content } = c.req.valid("json");
+		const { content, clientMessageId } = c.req.valid("json");
 
 		const server =
 			(c.env as Record<string, unknown> | undefined)?.server ||
 			(globalThis as Record<string, unknown>).server;
 
-		const msgResponse = await chatService.sendMessage(id, user.id, content, server);
+		const msgResponse = await chatService.sendMessage(
+			id,
+			user.id,
+			content,
+			clientMessageId,
+			server,
+		);
 		return c.json(msgResponse, 201);
 	},
 );

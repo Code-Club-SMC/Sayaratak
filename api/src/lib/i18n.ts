@@ -292,6 +292,12 @@ export const ERROR_DICTIONARY: Record<string, ErrorDefinition> = {
 		en: "This contact method is not available for this listing.",
 		ar: "وسيلة التواصل هذه غير متاحة لهذا الإعلان.",
 	},
+	LISTING_NOT_CONTACTABLE: {
+		code: "LISTING_NOT_CONTACTABLE",
+		en: "This listing is closed and cannot start a new conversation.",
+		ar: "هذا الإعلان مغلق ولا يمكن بدء محادثة جديدة عليه.",
+		status: 403,
+	},
 
 	// Rate Limiting & Monetization
 	TOO_MANY_REQUESTS: {

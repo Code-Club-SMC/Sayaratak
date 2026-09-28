@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { conversations, messages } from "../db/schemas/communication-schema";
 import { listings } from "../db/schemas/listing-schema";
@@ -8,6 +8,68 @@ import { NotFoundError, ForbiddenError, BadRequestError } from "../lib/errors";
 type BunServerWithPublish = {
 	publish: (topic: string, data: string) => number;
 };
+
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function insertMessageIdempotent(
+	executor: Executor,
+	conversationId: string,
+	senderId: string,
+	content: string,
+	clientMessageId?: string,
+) {
+	if (!clientMessageId) {
+		const [inserted] = await executor
+			.insert(messages)
+			.values({ conversationId, senderId, content })
+			.returning();
+		return inserted;
+	}
+
+	const [inserted] = await executor
+		.insert(messages)
+		.values({ conversationId, senderId, content, clientMessageId })
+		.onConflictDoNothing({
+			target: [messages.conversationId, messages.clientMessageId],
+			where: sql`${messages.clientMessageId} IS NOT NULL`,
+		})
+		.returning();
+
+	if (inserted) return inserted;
+
+	const [existing] = await executor
+		.select()
+		.from(messages)
+		.where(
+			and(
+				eq(messages.conversationId, conversationId),
+				eq(messages.clientMessageId, clientMessageId),
+			),
+		);
+	return existing;
+}
+
+function safeMessage(msg: typeof messages.$inferSelect) {
+	return {
+		id: msg.id,
+		conversationId: msg.conversationId,
+		senderId: msg.senderId,
+		content: msg.content,
+		isRead: msg.isRead,
+		createdAt: msg.createdAt,
+	};
+}
+
+function safeConversation(conv: typeof conversations.$inferSelect) {
+	return {
+		id: conv.id,
+		listingId: conv.listingId,
+		buyerId: conv.buyerId,
+		sellerId: conv.sellerId,
+		lastMessageAt: conv.lastMessageAt,
+		createdAt: conv.createdAt,
+	};
+}
 
 export const chatService = {
 	async listConversations(userId: string) {
@@ -30,7 +92,12 @@ export const chatService = {
 			.orderBy(desc(conversations.lastMessageAt));
 	},
 
-	async startConversation(userId: string, listingId: string) {
+	async startConversationWithMessage(
+		userId: string,
+		listingId: string,
+		content: string,
+		clientMessageId?: string,
+	) {
 		const [listing] = await db
 			.select()
 			.from(listings)
@@ -39,55 +106,69 @@ export const chatService = {
 		if (!listing) {
 			throw new NotFoundError("Listing not found", "LISTING_NOT_FOUND");
 		}
-
 		if (listing.userId === userId) {
 			throw new BadRequestError("Cannot message yourself", "CANNOT_MESSAGE_SELF");
 		}
 
-		const [existing] = await db
+		const [existingConversation] = await db
 			.select()
 			.from(conversations)
 			.where(
-				and(
-					eq(conversations.listingId, listingId),
-					eq(conversations.buyerId, userId),
-				),
+				and(eq(conversations.listingId, listingId), eq(conversations.buyerId, userId)),
 			);
 
-		if (existing) {
-			return {
-				conversation: {
-					id: existing.id,
-					listingId: existing.listingId,
-					buyerId: existing.buyerId,
-					sellerId: existing.sellerId,
-					lastMessageAt: existing.lastMessageAt,
-					createdAt: existing.createdAt,
-				},
-				isNew: false,
-			};
+		if (!existingConversation && listing.status !== "available") {
+			throw new ForbiddenError(
+				"This listing is closed and cannot start a new conversation.",
+				"LISTING_NOT_CONTACTABLE",
+			);
 		}
 
-		const [created] = await db
-			.insert(conversations)
-			.values({
-				listingId,
-				buyerId: userId,
-				sellerId: listing.userId,
-			})
-			.returning();
+		return db.transaction(async (tx) => {
+			let conversation = existingConversation;
 
-		return {
-			conversation: {
-				id: created.id,
-				listingId: created.listingId,
-				buyerId: created.buyerId,
-				sellerId: created.sellerId,
-				lastMessageAt: created.lastMessageAt,
-				createdAt: created.createdAt,
-			},
-			isNew: true,
-		};
+			if (!conversation) {
+				const [inserted] = await tx
+					.insert(conversations)
+					.values({ listingId, buyerId: userId, sellerId: listing.userId })
+					.onConflictDoNothing({
+						target: [conversations.listingId, conversations.buyerId],
+					})
+					.returning();
+
+				conversation = inserted;
+				if (!conversation) {
+					[conversation] = await tx
+						.select()
+						.from(conversations)
+						.where(
+							and(
+								eq(conversations.listingId, listingId),
+								eq(conversations.buyerId, userId),
+							),
+						);
+				}
+			}
+
+			const message = await insertMessageIdempotent(
+				tx,
+				conversation.id,
+				userId,
+				content,
+				clientMessageId,
+			);
+
+			await tx
+				.update(conversations)
+				.set({ lastMessageAt: new Date() })
+				.where(eq(conversations.id, conversation.id));
+
+			return {
+				conversation: safeConversation(conversation),
+				message: safeMessage(message),
+				isNewConversation: !existingConversation,
+			};
+		});
 	},
 
 	async getMessages(conversationId: string, userId: string) {
@@ -118,7 +199,13 @@ export const chatService = {
 			.orderBy(messages.createdAt);
 	},
 
-	async sendMessage(conversationId: string, senderId: string, content: string, server?: any) {
+	async sendMessage(
+		conversationId: string,
+		senderId: string,
+		content: string,
+		clientMessageId: string | undefined,
+		server?: any,
+	) {
 		const [conv] = await db
 			.select()
 			.from(conversations)
@@ -132,28 +219,22 @@ export const chatService = {
 			throw new ForbiddenError("Forbidden", "FORBIDDEN");
 		}
 
-		const [msg] = await db
-			.insert(messages)
-			.values({
+		const msg = await db.transaction(async (tx) => {
+			const inserted = await insertMessageIdempotent(
+				tx,
 				conversationId,
 				senderId,
 				content,
-			})
-			.returning();
+				clientMessageId,
+			);
+			await tx
+				.update(conversations)
+				.set({ lastMessageAt: new Date() })
+				.where(eq(conversations.id, conversationId));
+			return inserted;
+		});
 
-		const msgResponse = {
-			id: msg.id,
-			conversationId: msg.conversationId,
-			senderId: msg.senderId,
-			content: msg.content,
-			isRead: msg.isRead,
-			createdAt: msg.createdAt,
-		};
-
-		await db
-			.update(conversations)
-			.set({ lastMessageAt: new Date() })
-			.where(eq(conversations.id, conversationId));
+		const msgResponse = safeMessage(msg);
 
 		const receiverId =
 			conv.buyerId === senderId ? conv.sellerId : conv.buyerId;
