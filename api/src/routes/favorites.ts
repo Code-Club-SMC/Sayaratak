@@ -29,6 +29,18 @@ favoritesApp.post("/:listingId", zValidator("param", listingIdParamSchema), asyn
 	return c.json(created, 201);
 });
 
+// GET /api/favorites/:listingId
+favoritesApp.get(
+	"/:listingId",
+	zValidator("param", listingIdParamSchema),
+	async (c) => {
+		const user = c.get("user");
+		const { listingId } = c.req.valid("param");
+		const favorited = await favoritesService.isFavorited(user.id, listingId);
+		return c.json({ favorited });
+	},
+);
+
 // DELETE /api/favorites/:listingId
 favoritesApp.delete("/:listingId", zValidator("param", listingIdParamSchema), async (c) => {
 	const user = c.get("user");

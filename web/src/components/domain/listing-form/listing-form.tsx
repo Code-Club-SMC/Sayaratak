@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
 	categoriesQueryOptions,
@@ -462,7 +463,104 @@ export function ListingForm({
 					</Field>
 				</div>
 			</section>
+
+			<section className="space-y-4">
+				<SectionTitle
+					title={locale === "ar" ? "خيارات التواصل" : "Contact options"}
+					description={
+						locale === "ar"
+							? "اختياري. لن يظهر رقمك إلا إذا فعّلته هنا صراحةً."
+							: "Optional. Your number is never shown unless you explicitly enable it here."
+					}
+				/>
+				<div className="grid gap-4 md:grid-cols-2">
+					<ContactToggleField
+						label={
+							locale === "ar"
+								? "إظهار رقم الهاتف لهذا الإعلان"
+								: "Show a phone number for this listing"
+						}
+						enabled={values.contactPhoneEnabled}
+						onEnabledChange={(enabled) =>
+							patch({ contactPhoneEnabled: enabled })
+						}
+						value={values.contactPhone ?? ""}
+						onValueChange={(value) => updateText("contactPhone", value)}
+						placeholder={locale === "ar" ? "+249..." : "+249..."}
+						error={
+							submitted &&
+							values.contactPhoneEnabled &&
+							!values.contactPhone?.trim()
+								? locale === "ar"
+									? "أدخل رقم هاتف قبل إظهاره للعامة."
+									: "Enter a phone number before making it publicly visible."
+								: undefined
+						}
+					/>
+					<ContactToggleField
+						label={
+							locale === "ar"
+								? "إظهار رقم واتساب لهذا الإعلان"
+								: "Show a WhatsApp number for this listing"
+						}
+						enabled={values.contactWhatsappEnabled}
+						onEnabledChange={(enabled) =>
+							patch({ contactWhatsappEnabled: enabled })
+						}
+						value={values.contactWhatsapp ?? ""}
+						onValueChange={(value) => updateText("contactWhatsapp", value)}
+						placeholder={locale === "ar" ? "+249..." : "+249..."}
+						error={
+							submitted &&
+							values.contactWhatsappEnabled &&
+							!values.contactWhatsapp?.trim()
+								? locale === "ar"
+									? "أدخل رقم واتساب قبل إظهاره للعامة."
+									: "Enter a WhatsApp number before making it publicly visible."
+								: undefined
+						}
+					/>
+				</div>
+			</section>
 		</form>
+	);
+}
+
+function ContactToggleField({
+	label,
+	enabled,
+	onEnabledChange,
+	value,
+	onValueChange,
+	placeholder,
+	error,
+}: {
+	label: string;
+	enabled: boolean;
+	onEnabledChange: (enabled: boolean) => void;
+	value: string;
+	onValueChange: (value: string) => void;
+	placeholder: string;
+	error?: string;
+}) {
+	return (
+		<div className="space-y-1.5">
+			<div className="flex items-center justify-between gap-3">
+				<Label className="font-normal">{label}</Label>
+				<Switch
+					checked={enabled}
+					onCheckedChange={(checked) => onEnabledChange(Boolean(checked))}
+				/>
+			</div>
+			<Input
+				aria-invalid={Boolean(error)}
+				disabled={!enabled}
+				placeholder={placeholder}
+				value={enabled ? value : ""}
+				onChange={(event) => onValueChange(event.target.value)}
+			/>
+			{error ? <p className="text-xs text-destructive">{error}</p> : null}
+		</div>
 	);
 }
 

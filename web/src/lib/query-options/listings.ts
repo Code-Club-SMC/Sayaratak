@@ -51,6 +51,10 @@ export type ListingMutationPayload = {
 	specs?: Record<string, unknown>;
 	media?: ListingMediaInput[];
 	rentalPeriod?: "daily" | "weekly" | "monthly";
+	contactPhone?: string;
+	contactPhoneEnabled?: boolean;
+	contactWhatsapp?: string;
+	contactWhatsappEnabled?: boolean;
 };
 
 export type ListingItem = ListingCardData & {
@@ -108,9 +112,19 @@ type BackendListing = {
 		name?: string | null;
 		accountType?: string | null;
 		image?: string | null;
-		phone?: string | null;
 		isVerified?: boolean | null;
 	} | null;
+	// Public detail/list reads only (derived, allowlisted server-side).
+	contact?: {
+		phone: string | null;
+		whatsapp: string | null;
+		canMessage: boolean;
+	} | null;
+	// Owner-only managed detail reads only (raw, for the edit form).
+	contactPhone?: string | null;
+	contactPhoneEnabled?: boolean | null;
+	contactWhatsapp?: string | null;
+	contactWhatsappEnabled?: boolean | null;
 	createdAt?: string;
 };
 
@@ -993,31 +1007,29 @@ export type ListingDetail = ListingItem & {
 	description: string;
 	specs?: {
 		trim?: string;
-		drivetrain?: string;
-		engineSize?: string;
-		exteriorColor?: string;
-		interiorColor?: string;
-		vinStatus?: string;
-		registeredCity?: string;
-		serviceHistory?: string;
-		postedOn?: string;
-		listingId?: string;
 		[key: string]: any;
 	};
 	seller: {
 		name: string;
 		isVerified: boolean;
 		accountType: "dealership" | "workshop" | "mechanic" | "user";
-		phone?: string;
-		whatsapp?: string;
-		rating?: number;
-		reviewCount?: number;
-		bio?: string;
 		avatarUrl?: string;
+	};
+	// Present on the public detail read; absent on the owner-only managed detail read
+	// (which exposes the raw contactPhone/contactWhatsapp fields below instead).
+	contact?: {
+		phone: string | null;
+		whatsapp: string | null;
+		canMessage: boolean;
 	};
 	status: ListingLifecycleStatus;
 	media: { url: string; publicId?: string; isPrimary?: boolean }[];
 	relatedListings?: ListingItem[];
+	// Owner-only fields, present only from managedListingDetailQueryOptions.
+	contactPhone?: string | null;
+	contactPhoneEnabled?: boolean;
+	contactWhatsapp?: string | null;
+	contactWhatsappEnabled?: boolean;
 };
 
 export const createListing = (
@@ -1045,197 +1057,62 @@ export const updateListingStatus = (
 export const deleteListing = (locale: string, id: string) =>
 	apiDelete<{ success: boolean }>(`/api/v1/listings/${id}`, { locale });
 
-export const MOCK_DETAIL_LAND_CRUISER: ListingDetail = {
-	id: "lst-001",
-	title: "Toyota Land Cruiser 2020",
-	trim: "GXR V6 4.0L",
-	price: 125000000,
-	currency: "SDG",
-	year: 2020,
-	mileage: 60000,
-	transmission: "automatic",
-	fuelType: "petrol",
-	condition: "used",
-	vehicleType: "suv",
-	categoryId: "cat-suv",
-	makeId: "toyota",
-	modelId: "land-cruiser",
-	city: "Khartoum",
-	district: "Al Riyadh",
-	status: "available",
-	images: [
-		"https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1200&q=85",
-		"https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
-		"https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80",
-		"https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80",
-		"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
-	],
-	media: [
-		{
-			url: "https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1200&q=85",
-			isPrimary: true,
-		},
-		{
-			url: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
-		},
-		{
-			url: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80",
-		},
-		{
-			url: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80",
-		},
-		{
-			url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
-		},
-	],
-	description:
-		"Immaculate Toyota Land Cruiser 2020 VX.R 4.0L in excellent condition. Full service history at Toyota authorized dealer. Accident free, single owner, and well maintained. Comes with premium leather interior, sunroof, rear entertainment, and 8 airbags. Ready to drive across Sudan with zero mechanical issues.",
-	specs: {
-		trim: "VX.R 4.0L",
-		drivetrain: "4WD Full-Time",
-		engineSize: "4.0L V6 Dual VVT-i",
-		exteriorColor: "White Pearl",
-		interiorColor: "Beige Premium Leather",
-		vinStatus: "Verified",
-		registeredCity: "Khartoum",
-		serviceHistory: "Full Authorized Service History",
-		postedOn: "May 24, 2025",
-		listingId: "STK-2025-0524-00178",
-	},
-	seller: {
-		name: "Al Fajer Motors",
-		isVerified: true,
-		accountType: "dealership",
-		phone: "+249 912 345 678",
-		whatsapp: "+249912345678",
-		rating: 4.8,
-		reviewCount: 126,
-		bio: "Trusted automotive dealer in Khartoum specializing in quality pre-owned vehicles. All vehicles are inspected and come with market-leading guarantees.",
-	},
-	createdAt: "2026-03-10T10:00:00Z",
-};
-
 export function listingDetailQueryOptions(locale: string, id: string) {
 	return queryOptions({
 		queryKey: listingKeys.detail(locale, id),
 		queryFn: async (): Promise<ListingDetail> => {
-			try {
-				const data = await apiGet<any>(`/api/v1/listings/${id}`, { locale });
-				if (data?.id) {
-					const city =
-						locale === "ar"
-							? data.city?.nameAr || data.city?.nameEn
-							: data.city?.nameEn || data.city?.nameAr;
-					const district =
-						locale === "ar"
-							? data.district?.nameAr || data.district?.nameEn
-							: data.district?.nameEn || data.district?.nameAr;
+			const data = await apiGet<any>(`/api/v1/listings/${id}`, { locale });
 
-					return {
-						id: data.id,
-						title: data.title,
-						trim: data.specs?.trim || data.trim,
-						price: Number(data.price),
-						currency: data.currency || "SDG",
-						year: data.year,
-						mileage: data.mileage,
-						transmission: data.transmission,
-						fuelType: data.fuelType,
-						condition: data.condition,
-						city,
-						district,
-						status: data.status || "available",
-						description: data.description || "",
-						specs: data.specs || {},
-						media: Array.isArray(data.media)
-							? data.media.map((m: any) =>
-									typeof m === "string" ? { url: m } : m,
-								)
-							: [],
-						images: Array.isArray(data.media)
-							? data.media.map((m: any) => (typeof m === "string" ? m : m.url))
-							: [],
-						seller: {
-							name: data.user?.name || "Seller",
-							isVerified: Boolean(data.user?.isVerified),
-							accountType: data.user?.accountType || "user",
-							phone: data.user?.phone || undefined,
-							whatsapp: data.user?.phone || undefined,
-							rating: 4.8,
-							reviewCount: 126,
-							bio: "Trusted automotive dealer in Khartoum specializing in quality pre-owned vehicles.",
-						},
-						createdAt: data.createdAt,
-					};
-				}
-			} catch (err) {
-				if (!isMockListingFallbackEnabled()) throw err;
-				console.warn("Using fallback listing detail for id", id, err);
-			}
-
-			if (!isMockListingFallbackEnabled()) {
-				throw new Error(`Listing ${id} did not return a valid detail payload`);
-			}
-
-			// Fallback: search in mock list or return mock Land Cruiser
-			const found = MOCK_SEARCH_LISTINGS.find((l) => l.id === id);
-			if (found) {
-				return {
-					...MOCK_DETAIL_LAND_CRUISER,
-					...found,
-					id: found.id,
-					title: found.title,
-					trim: found.trim || MOCK_DETAIL_LAND_CRUISER.trim,
-					price: found.price,
-					year: found.year,
-					mileage: found.mileage,
-					city: found.city,
-					district: found.district,
-					media: (found.images && found.images.length > 0
-						? found.images
-						: (MOCK_DETAIL_LAND_CRUISER.images ?? [])
-					).map((img, i) => ({
-						url: img,
-						isPrimary: i === 0,
-					})),
-					description:
-						found.description ||
-						`Excellent condition ${found.title}. Inspected and certified with full service records. Clean interior, well-maintained engine, authorized dealer maintenance history. Ready to drive with no mechanical faults.`,
-					specs: {
-						...MOCK_DETAIL_LAND_CRUISER.specs,
-						trim: found.trim || "Standard",
-						drivetrain:
-							found.vehicleType === "suv" || found.vehicleType === "pickup"
-								? "4WD / AWD"
-								: "FWD",
-						engineSize:
-							found.vehicleType === "tuktuk"
-								? "200cc"
-								: found.vehicleType === "motorcycle"
-									? "150cc"
-									: "1.6L - 2.0L",
-						exteriorColor: "Silver Metallic",
-						interiorColor: "Dark Grey Fabric",
-						vinStatus: "Verified",
-						registeredCity: found.city || "Khartoum",
-						listingId: `STK-${found.id.toUpperCase()}`,
-					},
-					seller: {
-						name: found.seller?.name || "Verified Dealer",
-						isVerified: Boolean(found.seller?.isVerified ?? true),
-						accountType: (found.seller?.accountType as any) || "dealership",
-						phone: "+249 912 345 678",
-						whatsapp: "+249912345678",
-						rating: 4.8,
-						reviewCount: 42,
-						bio: "Reliable automotive seller in Sudan. Inspect and test drive anytime.",
-					},
-				};
-			}
+			const city =
+				locale === "ar"
+					? data.city?.nameAr || data.city?.nameEn
+					: data.city?.nameEn || data.city?.nameAr;
+			const district =
+				locale === "ar"
+					? data.district?.nameAr || data.district?.nameEn
+					: data.district?.nameEn || data.district?.nameAr;
 
 			return {
-				...MOCK_DETAIL_LAND_CRUISER,
-				id,
+				id: data.id,
+				title: data.title,
+				trim:
+					typeof data.specs?.trim === "string" ? data.specs.trim : undefined,
+				price: Number(data.price),
+				currency: data.currency || "SDG",
+				year: data.year ?? undefined,
+				mileage: data.mileage ?? undefined,
+				transmission: data.transmission ?? undefined,
+				fuelType: data.fuelType ?? undefined,
+				condition: data.condition ?? undefined,
+				categoryId: data.categoryId ?? undefined,
+				makeId: data.makeId ?? undefined,
+				modelId: data.modelId ?? undefined,
+				cityId: data.cityId ?? undefined,
+				districtId: data.districtId ?? undefined,
+				city,
+				district,
+				status: data.status,
+				rentalPeriod: data.rentalPeriod ?? undefined,
+				description: data.description || "",
+				specs: data.specs || {},
+				media: Array.isArray(data.media)
+					? data.media.map((m: any) => (typeof m === "string" ? { url: m } : m))
+					: [],
+				images: Array.isArray(data.media)
+					? data.media.map((m: any) => (typeof m === "string" ? m : m.url))
+					: [],
+				isFeatured: Boolean(data.isFeatured),
+				seller: {
+					name: data.user?.name || "Seller",
+					isVerified: Boolean(data.user?.isVerified),
+					accountType: data.user?.accountType || "user",
+				},
+				contact: {
+					phone: data.contact?.phone ?? null,
+					whatsapp: data.contact?.whatsapp ?? null,
+					canMessage: Boolean(data.contact?.canMessage),
+				},
+				createdAt: data.createdAt,
 			};
 		},
 		staleTime: 60 * 1000,
@@ -1303,9 +1180,11 @@ export function managedListingDetailQueryOptions(
 						(data.user
 							?.accountType as ListingDetail["seller"]["accountType"]) ||
 						"user",
-					phone: data.user?.phone || undefined,
-					whatsapp: data.user?.phone || undefined,
 				},
+				contactPhone: data.contactPhone ?? undefined,
+				contactPhoneEnabled: Boolean(data.contactPhoneEnabled),
+				contactWhatsapp: data.contactWhatsapp ?? undefined,
+				contactWhatsappEnabled: Boolean(data.contactWhatsappEnabled),
 				createdAt: data.createdAt,
 			};
 		},

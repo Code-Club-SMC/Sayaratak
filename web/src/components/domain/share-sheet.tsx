@@ -8,7 +8,8 @@ import {
 	ShieldCheck,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import QRCode from "qrcode";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -36,11 +37,28 @@ export function ShareSheet({ open, onOpenChange, listing }: ShareSheetProps) {
 	const { locale } = useTranslation();
 	const [copied, setCopied] = useState(false);
 	const [showQr, setShowQr] = useState(false);
+	const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
 	const shareUrl =
 		typeof window !== "undefined"
 			? `${window.location.origin}/${locale}/listings/${listing.id}`
 			: `https://sayaratak.com/${locale}/listings/${listing.id}`;
+
+	// Generated locally — the listing URL is never sent to a third-party QR service.
+	useEffect(() => {
+		if (!showQr) return;
+		let cancelled = false;
+		QRCode.toDataURL(shareUrl, { width: 150, margin: 1 })
+			.then((url) => {
+				if (!cancelled) setQrDataUrl(url);
+			})
+			.catch(() => {
+				if (!cancelled) setQrDataUrl(null);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [showQr, shareUrl]);
 
 	const shareText = `${listing.title} - ${listing.currency || "SDG"} ${listing.price.toLocaleString()} on Sayaratak Sudan`;
 
@@ -246,11 +264,15 @@ export function ShareSheet({ open, onOpenChange, listing }: ShareSheetProps) {
 				{/* Inline QR Code View if toggled */}
 				{showQr && (
 					<div className="p-4 rounded-xl border border-border bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center gap-2 mt-2">
-						<img
-							src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`}
-							alt="QR Code for listing"
-							className="size-32 rounded-lg bg-white p-2 border border-border"
-						/>
+						{qrDataUrl ? (
+							<img
+								src={qrDataUrl}
+								alt="QR Code for listing"
+								className="size-32 rounded-lg bg-white p-2 border border-border"
+							/>
+						) : (
+							<div className="size-32 rounded-lg bg-muted animate-pulse" />
+						)}
 						<span className="text-[11px] text-muted-foreground">
 							{locale === "ar"
 								? "امسح الرمز لفتح الإعلان"
