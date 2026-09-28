@@ -127,4 +127,12 @@ export const favoritesService = {
 
 		return { success: true, message: "Removed from favorites" };
 	},
+
+	async isFavorited(userId: string, listingId: string) {
+		const [row] = await db
+			.select({ id: favorites.id })
+			.from(favorites)
+			.where(and(eq(favorites.userId, userId), eq(favorites.listingId, listingId)));
+		return Boolean(row);
+	},
 };

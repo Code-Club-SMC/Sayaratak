@@ -87,6 +87,53 @@ describe("Listings Engine Endpoints", () => {
 	let cityId = "";
 	let createdListingId = "";
 
+	// This file authenticates via the `getSession` mock rather than real cookies, so
+	// `sellerCookie` stands in for "the seller identity to authenticate as" — it's the
+	// fixture user id fed into the mocked session, not a literal cookie header.
+	const sellerCookie = "u1";
+
+	// Creates a listing via the authenticated create endpoint, then forces its status
+	// directly in the DB so lifecycle states unreachable through the public API
+	// (pending/rejected/banned are admin-moderation-only) can still be exercised here.
+	async function createListingWithStatus(
+		cookie: string,
+		status: string,
+		overrides: Record<string, unknown> = {},
+	) {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: cookie, role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Lifecycle Fixture Listing",
+				description: "Listing created to exercise lifecycle status transitions",
+				price: 5000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				...overrides,
+			}),
+		});
+		const created = (await res.json()) as Listing;
+
+		if (created.status !== status) {
+			await db
+				.update(listings)
+				.set({ status })
+				.where(eq(listings.id, created.id));
+		}
+
+		return { ...created, status };
+	}
+
 	test("Setup - get taxonomy and locations for foreign keys", async () => {
 		// Ensure user exists for foreign key constraint
 		await db
@@ -248,6 +295,27 @@ describe("Listings Engine Endpoints", () => {
 		);
 	});
 
+	test("GET /api/listings redacts raw contact fields and the account phone, exposing only the derived contact object", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000004",
+			contactPhoneEnabled: true,
+		});
+
+		const res = await listingsApp.request("/");
+		expect(res.status).toBe(200);
+		const page = (await res.json()) as { items: any[] };
+		const item = page.items.find((l) => l.id === listing.id);
+		expect(item).toBeDefined();
+		expect(item.contact.phone).toBe("+249900000004");
+		expect(item.contact.canMessage).toBe(true);
+		// Raw consent columns must never leak on the public list path.
+		expect(item.contactPhone).toBeUndefined();
+		expect(item.contactPhoneEnabled).toBeUndefined();
+		expect(item.contactWhatsapp).toBeUndefined();
+		expect(item.contactWhatsappEnabled).toBeUndefined();
+		expect(item.user.phone).toBeUndefined();
+	});
+
 	test("GET /api/listings/:id fetches single listing", async () => {
 		const res = await listingsApp.request(`/${createdListingId}`);
 		expect(res.status).toBe(200);
@@ -256,17 +324,6 @@ describe("Listings Engine Endpoints", () => {
 		expect(listing.city?.id).toBe(cityId);
 		expect(listing.user?.id).toBe("u1");
 		expect(listing.user?.name).toBe("Test User");
-
-		await db
-			.update(listings)
-			.set({ status: "sold" })
-			.where(eq(listings.id, createdListingId));
-		const goneRes = await listingsApp.request(`/${createdListingId}`);
-		expect(goneRes.status).toBe(410);
-		await db
-			.update(listings)
-			.set({ status: "available" })
-			.where(eq(listings.id, createdListingId));
 	});
 
 	test("GET /api/listings/me and /manage/:id expose owner drafts without weakening public reads", async () => {
@@ -314,8 +371,9 @@ describe("Listings Engine Endpoints", () => {
 		expect(ownerDetail.id).toBe(draftListing.id);
 		expect(ownerDetail.status).toBe("draft");
 
+		// Draft listings never became public: 404, not the old blanket 410.
 		const publicDetailRes = await listingsApp.request(`/${draftListing.id}`);
-		expect(publicDetailRes.status).toBe(410);
+		expect(publicDetailRes.status).toBe(404);
 
 		getSession.mockResolvedValue({
 			session: { id: "s2" },
@@ -328,6 +386,61 @@ describe("Listings Engine Endpoints", () => {
 		expect(nonOwnerDetailRes.status).toBe(403);
 
 		await db.delete(listings).where(eq(listings.id, draftListing.id));
+	});
+
+	test("GET /listings/:id is 404 for draft/pending/rejected/banned listings", async () => {
+		for (const status of ["draft", "pending", "rejected", "banned"]) {
+			const listing = await createListingWithStatus(sellerCookie, status);
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(404);
+		}
+	});
+
+	test("GET /listings/:id returns 200 and a marked, contact-closed detail for reserved/sold/rented", async () => {
+		for (const status of ["reserved", "sold", "rented"]) {
+			const listing = await createListingWithStatus(sellerCookie, status);
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(200);
+			const json = await res.json();
+			expect(json.status).toBe(status);
+			expect(json.contact.canMessage).toBe(false);
+			expect(json.contact.phone).toBeNull();
+			expect(json.contact.whatsapp).toBeNull();
+		}
+	});
+
+	test("GET /listings/:id keeps contact closed for reserved/sold/rented even when a real, enabled contact number is on record", async () => {
+		// Unlike the test above, these listings DO have live, enabled contact numbers.
+		// If the `canMessage &&` gate in withPublicContact were ever dropped, this is the
+		// test that would catch a real phone number leaking on a closed listing.
+		for (const status of ["reserved", "sold", "rented"]) {
+			const listing = await createListingWithStatus(sellerCookie, status, {
+				contactPhone: "+249900000002",
+				contactPhoneEnabled: true,
+				contactWhatsapp: "+249900000003",
+				contactWhatsappEnabled: true,
+			});
+			const res = await listingsApp.request(`/${listing.id}`);
+			expect(res.status).toBe(200);
+			const json = await res.json();
+			expect(json.contact.canMessage).toBe(false);
+			expect(json.contact.phone).toBeNull();
+			expect(json.contact.whatsapp).toBeNull();
+		}
+	});
+
+	test("GET /listings/:id never returns the account login phone, only opted-in listing contact fields", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000001",
+			contactPhoneEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}`);
+		const json = await res.json();
+		expect(json.contact.phone).toBe("+249900000001");
+		expect(json.contact.whatsapp).toBeNull(); // whatsapp was never enabled
+		expect(json.user.phone).toBeUndefined();
+		expect(json.contactPhone).toBeUndefined(); // raw field must not leak on the public path
+		expect(json.contactPhoneEnabled).toBeUndefined();
 	});
 
 	test("PUT /api/listings/:id updates listing if owner", async () => {
@@ -364,6 +477,295 @@ describe("Listings Engine Endpoints", () => {
 		expect(res.status).toBe(403);
 	});
 
+	test("POST /api/listings rejects contactPhoneEnabled=true with no phone", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactPhoneEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_PHONE_REQUIRED");
+	});
+
+	test("POST /api/listings accepts contactPhoneEnabled=true with a phone and never copies the account phone", async () => {
+		const sellerAccountPhone = "+249900000000";
+		await db
+			.update(user)
+			.set({ phone: sellerAccountPhone })
+			.where(eq(user.id, "u1"));
+
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactPhone: "+249911111111",
+				contactPhoneEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(201);
+		const json = (await res.json()) as Listing & { contactPhone: string | null };
+		expect(json.contactPhone).toBe("+249911111111");
+		// Seller's account login phone must never leak in here even implicitly.
+		expect(json.contactPhone).not.toBe(sellerAccountPhone);
+
+		await db.delete(listings).where(eq(listings.id, json.id));
+		// Reset the fixture user's account phone so later tests in this file
+		// don't depend on the value left behind by this test.
+		await db.update(user).set({ phone: null }).where(eq(user.id, "u1"));
+	});
+
+	test("POST /api/listings rejects contactWhatsappEnabled=true with no whatsapp number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactWhatsappEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_WHATSAPP_REQUIRED");
+	});
+
+	test("POST /api/listings accepts contactWhatsappEnabled=true with a whatsapp number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactWhatsapp: "+249922222222",
+				contactWhatsappEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(201);
+		const json = (await res.json()) as Listing & {
+			contactWhatsapp: string | null;
+		};
+		expect(json.contactWhatsapp).toBe("+249922222222");
+
+		await db.delete(listings).where(eq(listings.id, json.id));
+	});
+
+	test("PUT /api/listings/:id rejects enabling phone without ever having provided a number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [draft] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Draft Hyundai Accent",
+				description: "Draft listing pending contact details",
+				price: 8000000,
+				currency: "SDG",
+				status: "draft",
+				specs: {},
+				media: [],
+			})
+			.returning();
+
+		const res = await listingsApp.request(`/${draft.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ contactPhoneEnabled: true }),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_PHONE_REQUIRED");
+
+		await db.delete(listings).where(eq(listings.id, draft.id));
+	});
+
+	test("PUT /api/listings/:id keeps contactPhoneEnabled and the stored number unchanged when omitted from an unrelated update", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [existingListing] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Available Kia Sportage",
+				description: "Listing with phone consent already granted",
+				price: 9000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				contactPhone: "+249933333333",
+				contactPhoneEnabled: true,
+			})
+			.returning();
+
+		// Unrelated edit: only price changes, contact fields are not sent at all.
+		const res = await listingsApp.request(`/${existingListing.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ price: 9500000 }),
+		});
+
+		expect(res.status).toBe(200);
+		const json = (await res.json()) as Listing & {
+			contactPhone: string | null;
+			contactPhoneEnabled: boolean;
+		};
+		expect(json.price).toBe(9500000);
+		// Previously-granted consent must survive an edit that never mentions it.
+		expect(json.contactPhoneEnabled).toBe(true);
+		expect(json.contactPhone).toBe("+249933333333");
+
+		await db.delete(listings).where(eq(listings.id, existingListing.id));
+	});
+
+	test("PUT /api/listings/:id keeps contactWhatsappEnabled and the stored number unchanged when omitted from an unrelated update", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [existingListing] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Available Kia Sportage",
+				description: "Listing with whatsapp consent already granted",
+				price: 9000000,
+				currency: "SDG",
+				status: "available",
+				specs: {},
+				media: [],
+				contactWhatsapp: "+249944444444",
+				contactWhatsappEnabled: true,
+			})
+			.returning();
+
+		// Unrelated edit: only price changes, contact fields are not sent at all.
+		const res = await listingsApp.request(`/${existingListing.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ price: 9500000 }),
+		});
+
+		expect(res.status).toBe(200);
+		const json = (await res.json()) as Listing & {
+			contactWhatsapp: string | null;
+			contactWhatsappEnabled: boolean;
+		};
+		expect(json.price).toBe(9500000);
+		// Previously-granted consent must survive an edit that never mentions it.
+		expect(json.contactWhatsappEnabled).toBe(true);
+		expect(json.contactWhatsapp).toBe("+249944444444");
+
+		await db.delete(listings).where(eq(listings.id, existingListing.id));
+	});
+
+	test("PUT /api/listings/:id rejects enabling whatsapp without ever having provided a number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [draft] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Draft Hyundai Accent",
+				description: "Draft listing pending contact details",
+				price: 8000000,
+				currency: "SDG",
+				status: "draft",
+				specs: {},
+				media: [],
+			})
+			.returning();
+
+		const res = await listingsApp.request(`/${draft.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ contactWhatsappEnabled: true }),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_WHATSAPP_REQUIRED");
+
+		await db.delete(listings).where(eq(listings.id, draft.id));
+	});
+
 	test("DELETE /api/listings/:id soft deletes listing", async () => {
 		getSession.mockResolvedValue({
 			session: { id: "s1" },
@@ -396,5 +798,63 @@ describe("Listings Engine Endpoints", () => {
 		expect(botRes.status).toBe(200);
 		const botData = (await botRes.json()) as { success: boolean };
 		expect(botData.success).toBe(true);
+	});
+
+	test("POST /listings/:id/clicks rejects a phone click when the listing doesn't permit it", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhoneEnabled: false,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "phone" }),
+		});
+		expect(res.status).toBe(403);
+		const json = await res.json();
+		expect(json.code).toBe("CONTACT_METHOD_NOT_PERMITTED");
+	});
+
+	test("POST /listings/:id/clicks rejects a whatsapp click on a closed (sold) listing even if the number is enabled", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "sold", {
+			contactWhatsapp: "+249900000002",
+			contactWhatsappEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "whatsapp" }),
+		});
+		expect(res.status).toBe(403);
+	});
+
+	test("POST /listings/:id/clicks accepts a permitted phone click and increments the counter", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "available", {
+			contactPhone: "+249900000003",
+			contactPhoneEnabled: true,
+		});
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "phone" }),
+		});
+		expect(res.status).toBe(200);
+
+		// Verify counter incremented in database
+		const [updated] = await db.select().from(listings).where(eq(listings.id, listing.id));
+		expect(updated.phoneClickCount).toBe(1);
+	});
+
+	test("POST /listings/:id/clicks still accepts view clicks regardless of contact permission", async () => {
+		const listing = await createListingWithStatus(sellerCookie, "sold");
+		const res = await listingsApp.request(`/${listing.id}/clicks`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ type: "view" }),
+		});
+		expect(res.status).toBe(200);
+
+		// Verify counter incremented in database
+		const [updated] = await db.select().from(listings).where(eq(listings.id, listing.id));
+		expect(updated.viewCount).toBe(1);
 	});
 });

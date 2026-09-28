@@ -1,0 +1,2 @@
+ALTER TABLE "messages" ADD COLUMN "client_message_id" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "messages_conversation_client_message_idx" ON "messages" ("conversation_id","client_message_id") WHERE "client_message_id" IS NOT NULL;

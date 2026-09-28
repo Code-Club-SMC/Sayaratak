@@ -26,25 +26,29 @@ describe("Profiles & Listing Status Endpoints", () => {
 
 	let dealershipId = "";
 	let listingId = "";
+	let dealerUserId = "";
 
 	test("Setup - mock data", async () => {
 		const uuid = crypto.randomUUID();
+		dealerUserId = "u_dealer2_" + uuid;
 		await db.insert(user).values({
-			id: "u_dealer2_" + uuid, name: "Dealer2", email: `dealer2_${uuid}@e.com`, role: "user", accountType: "dealership"
+			id: dealerUserId, name: "Dealer2", email: `dealer2_${uuid}@e.com`, role: "user", accountType: "dealership"
 		}).onConflictDoNothing();
 
 		const [dealer] = await db.insert(dealerships).values({
-			userId: "u_dealer2_" + uuid, name: "Dealer Profile"
+			userId: dealerUserId, name: "Dealer Profile"
 		}).returning();
 		dealershipId = dealer.id;
 
 		const [cat] = await db.insert(categories).values({ slug: "c_prof_" + uuid, nameEn: "C", nameAr: "C" }).returning();
 		const [country] = await db.insert(countries).values({ code: "SD2_" + uuid, nameEn: "SD", nameAr: "SD" }).returning();
 		const [city] = await db.insert(cities).values({ countryId: country.id, nameEn: "City", nameAr: "City" }).returning();
-		
+
 		const [listing] = await db.insert(listings).values({
-			userId: "u_dealer2_" + uuid, categoryId: cat.id, countryId: country.id, cityId: city.id,
-			title: "Listing Profile Test", description: "Desc", price: 100, status: "available"
+			userId: dealerUserId, categoryId: cat.id, countryId: country.id, cityId: city.id,
+			title: "Listing Profile Test", description: "Desc", price: 100, status: "available",
+			contactWhatsapp: "+249900000005",
+			contactWhatsappEnabled: true
 		}).returning();
 		listingId = listing.id;
 	});
@@ -97,16 +101,35 @@ describe("Profiles & Listing Status Endpoints", () => {
 	});
 
 	test("POST /listings/:id/clicks increments analytics", async () => {
-		const res = await listingsApp.request(`/${listingId}/clicks`, {
+		// Create a dedicated listing for this test to avoid mutation of the shared fixture
+		// (the previous test PATCH'd listingId to status: "reserved")
+		const [cat] = await db.select().from(categories).limit(1);
+		const [country] = await db.select().from(countries).limit(1);
+		const [city] = await db.select().from(cities).where(eq(cities.countryId, country.id)).limit(1);
+		const [dedicatedListing] = await db.insert(listings).values({
+			userId: dealerUserId,
+			categoryId: cat.id,
+			countryId: country.id,
+			cityId: city.id,
+			title: "Click Analytics Test Listing",
+			description: "Dedicated listing for analytics testing",
+			price: 100,
+			status: "available",
+			contactWhatsapp: "+249900000005",
+			contactWhatsappEnabled: true
+		}).returning();
+
+		// Test whatsapp click increments counter
+		const res = await listingsApp.request(`/${dedicatedListing.id}/clicks`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ type: "whatsapp" })
 		});
 		expect(res.status).toBe(200);
 
-		// Verify increment
-		const [listing] = await db.select().from(listings).where(eq(listings.id, listingId));
-		expect(listing.whatsappClickCount).toBe(1);
+		// Verify increment in database
+		const [updated] = await db.select().from(listings).where(eq(listings.id, dedicatedListing.id));
+		expect(updated.whatsappClickCount).toBe(1);
 	});
 
 	test("PATCH /profiles/workshop updates images gallery and workingHours", async () => {

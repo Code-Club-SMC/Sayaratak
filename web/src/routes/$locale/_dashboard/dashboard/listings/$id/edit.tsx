@@ -29,7 +29,11 @@ export const Route = createFileRoute(
 )({
 	loader: ({ context, params }) =>
 		context.queryClient.ensureQueryData(
-			managedListingDetailQueryOptions(params.locale, params.id),
+			managedListingDetailQueryOptions(
+				params.locale,
+				params.id,
+				context.user.id,
+			),
 		),
 	component: EditListingPage,
 });
@@ -72,12 +76,13 @@ function mutationPayloadForCurrentStatus(
 
 function EditListingPage() {
 	const { locale, id } = Route.useParams();
+	const { user } = Route.useRouteContext();
 	const queryClient = useQueryClient();
 	const {
 		data: listing,
 		isLoading,
 		error: loadError,
-	} = useQuery(managedListingDetailQueryOptions(locale, id));
+	} = useQuery(managedListingDetailQueryOptions(locale, id, user.id));
 	const [values, setValues] = useState<ListingFormValues>(
 		defaultListingFormValues,
 	);
@@ -133,10 +138,6 @@ function EditListingPage() {
 		}
 	}
 
-	if (isLoading || !listing) {
-		return <EditListingSkeleton />;
-	}
-
 	if (loadError) {
 		return (
 			<div className="mx-auto max-w-3xl space-y-4 py-8">
@@ -147,25 +148,34 @@ function EditListingPage() {
 					</AlertTitle>
 					<AlertDescription>{errorMessage(loadError)}</AlertDescription>
 				</Alert>
-				<Button variant="outline" asChild>
-					<Link to="/$locale/dashboard/listings" params={{ locale }}>
-						<ArrowLeft />
-						{locale === "ar" ? "العودة إلى إعلاناتي" : "Back to listings"}
-					</Link>
+				<Button
+					variant="outline"
+					render={<Link to="/$locale/dashboard/listings" params={{ locale }} />}
+				>
+					<ArrowLeft />
+					{locale === "ar" ? "العودة إلى إعلاناتي" : "Back to listings"}
 				</Button>
 			</div>
 		);
+	}
+
+	if (isLoading || !listing) {
+		return <EditListingSkeleton />;
 	}
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div className="space-y-2">
-					<Button variant="ghost" size="sm" asChild>
-						<Link to="/$locale/dashboard/listings" params={{ locale }}>
-							<ArrowLeft />
-							{locale === "ar" ? "إعلاناتي" : "My Listings"}
-						</Link>
+					<Button
+						variant="ghost"
+						size="sm"
+						render={
+							<Link to="/$locale/dashboard/listings" params={{ locale }} />
+						}
+					>
+						<ArrowLeft />
+						{locale === "ar" ? "إعلاناتي" : "My Listings"}
 					</Button>
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="outline">{listing.status}</Badge>
@@ -173,11 +183,12 @@ function EditListingPage() {
 					</div>
 				</div>
 				<div className="flex flex-wrap gap-2">
-					<Button variant="outline" asChild>
-						<Link to="/$locale/listings/$id" params={{ locale, id }}>
-							<Eye />
-							{locale === "ar" ? "عرض الإعلان" : "View"}
-						</Link>
+					<Button
+						variant="outline"
+						render={<Link to="/$locale/listings/$id" params={{ locale, id }} />}
+					>
+						<Eye />
+						{locale === "ar" ? "عرض الإعلان" : "View"}
 					</Button>
 					<Button
 						type="button"

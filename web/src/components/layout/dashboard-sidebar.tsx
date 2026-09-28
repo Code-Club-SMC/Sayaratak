@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
 	Bell,
@@ -20,38 +20,10 @@ import {
 	SidebarMenu,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
 import { useTranslation } from "@/lib/i18n";
 
-type DashboardUser = {
-	id: string;
-	name: string;
-	email: string;
-	image?: string | null;
-	role?: string;
-	accountType?: string;
-};
-
-type DashboardSidebarProps = {
-	user: DashboardUser;
-};
-
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+export function DashboardSidebar() {
 	const { t, locale } = useTranslation();
-	const navigate = useNavigate();
-
-	async function _handleLogout() {
-		await authClient.signOut();
-		navigate({
-			to: "/$locale",
-			params: { locale },
-		});
-	}
-
-	const _isBusiness =
-		user.accountType === "dealership" ||
-		user.accountType === "workshop" ||
-		user.accountType === "mechanic";
 
 	const navItems = [
 		{

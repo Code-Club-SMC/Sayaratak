@@ -16,7 +16,11 @@ import {
 	extractPublicId,
 } from "../lib/cloudinary";
 import { isBotUserAgent } from "../lib/bot-detection";
-import { NotFoundError, ForbiddenError, GoneError } from "../lib/errors";
+import {
+	NotFoundError,
+	ForbiddenError,
+	BadRequestError,
+} from "../lib/errors";
 import type { SessionUser } from "../middleware/auth";
 import type {
 	CreateListingInput,
@@ -100,6 +104,10 @@ const listingResponseFields = {
 	media: listings.media,
 	createdAt: listings.createdAt,
 	updatedAt: listings.updatedAt,
+	contactPhone: listings.contactPhone,
+	contactPhoneEnabled: listings.contactPhoneEnabled,
+	contactWhatsapp: listings.contactWhatsapp,
+	contactWhatsappEnabled: listings.contactWhatsappEnabled,
 };
 
 const publicListingSelection = {
@@ -127,6 +135,44 @@ const publicListingSelection = {
 		accountType: user.accountType,
 	},
 };
+
+const PUBLIC_STATUSES = ["available", "reserved", "sold", "rented"] as const;
+
+type ContactableRow = {
+	status: string;
+	contactPhone: string | null;
+	contactPhoneEnabled: boolean;
+	contactWhatsapp: string | null;
+	contactWhatsappEnabled: boolean;
+};
+
+// Allowlists the seller's per-listing, opted-in contact fields and strips the raw
+// contactPhone*/contactWhatsapp* columns from public responses (AGENTS.md §6: explicit
+// field allowlists). Contact is only surfaced while the listing is actually available;
+// closed listings (reserved/sold/rented) read as canMessage: false with no contact info.
+function withPublicContact<T extends ContactableRow>(
+	row: T,
+): Omit<T, "contactPhone" | "contactPhoneEnabled" | "contactWhatsapp" | "contactWhatsappEnabled"> & {
+	contact: { phone: string | null; whatsapp: string | null; canMessage: boolean };
+} {
+	const {
+		contactPhone,
+		contactPhoneEnabled,
+		contactWhatsapp,
+		contactWhatsappEnabled,
+		...rest
+	} = row;
+	const canMessage = row.status === "available";
+	return {
+		...rest,
+		contact: {
+			phone: canMessage && contactPhoneEnabled && contactPhone ? contactPhone : null,
+			whatsapp:
+				canMessage && contactWhatsappEnabled && contactWhatsapp ? contactWhatsapp : null,
+			canMessage,
+		},
+	};
+}
 
 function buildFilterConditions(query: Record<string, any>) {
 	const conditions = [];
@@ -276,7 +322,7 @@ export const listingsService = {
 			.where(whereClause);
 
 		return {
-			items: results,
+			items: results.map(withPublicContact),
 			total: Number(total),
 			page,
 			limit,
@@ -364,7 +410,6 @@ export const listingsService = {
 					name: user.name,
 					image: user.image,
 					accountType: user.accountType,
-					phone: user.phone,
 					isVerified: dealerships.isVerified,
 				},
 			})
@@ -375,13 +420,11 @@ export const listingsService = {
 			.leftJoin(dealerships, eq(listings.userId, dealerships.userId))
 			.where(eq(listings.id, id));
 
-		if (!listing) {
+		if (!listing || !PUBLIC_STATUSES.includes(listing.status as (typeof PUBLIC_STATUSES)[number])) {
 			throw new NotFoundError("Listing not found", "LISTING_NOT_FOUND");
 		}
-		if (listing.status !== "available") {
-			throw new GoneError("Listing is no longer available", "LISTING_GONE");
-		}
-		return listing;
+
+		return withPublicContact(listing);
 	},
 
 	async getManagedListingById(id: string, currentUser: SessionUser) {
@@ -393,7 +436,6 @@ export const listingsService = {
 					name: user.name,
 					image: user.image,
 					accountType: user.accountType,
-					phone: user.phone,
 					isVerified: dealerships.isVerified,
 				},
 			})
@@ -421,6 +463,19 @@ export const listingsService = {
 			throw new ForbiddenError(
 				"Listing limit reached. Please upgrade your subscription.",
 				"LIMIT_REACHED",
+			);
+		}
+
+		if (body.contactPhoneEnabled && !body.contactPhone?.trim()) {
+			throw new BadRequestError(
+				"Enter a phone number before making it publicly visible.",
+				"CONTACT_PHONE_REQUIRED",
+			);
+		}
+		if (body.contactWhatsappEnabled && !body.contactWhatsapp?.trim()) {
+			throw new BadRequestError(
+				"Enter a WhatsApp number before making it publicly visible.",
+				"CONTACT_WHATSAPP_REQUIRED",
 			);
 		}
 
@@ -455,6 +510,10 @@ export const listingsService = {
 					: { url: m.url, isPrimary: m.isPrimary ?? false },
 			),
 			rentalPeriod: body.rentalPeriod || null,
+			contactPhone: body.contactPhone?.trim() || null,
+			contactPhoneEnabled: body.contactPhoneEnabled ?? false,
+			contactWhatsapp: body.contactWhatsapp?.trim() || null,
+			contactWhatsappEnabled: body.contactWhatsappEnabled ?? false,
 		};
 
 		const [created] = await db
@@ -481,6 +540,32 @@ export const listingsService = {
 
 		if (existing.userId !== currentUser.id && currentUser.role !== "admin") {
 			throw new ForbiddenError("Forbidden", "FORBIDDEN");
+		}
+
+		const effectivePhoneEnabled =
+			body.contactPhoneEnabled ?? existing.contactPhoneEnabled;
+		const effectivePhone =
+			body.contactPhone !== undefined
+				? body.contactPhone?.trim() || null
+				: existing.contactPhone;
+		if (effectivePhoneEnabled && !effectivePhone) {
+			throw new BadRequestError(
+				"Enter a phone number before making it publicly visible.",
+				"CONTACT_PHONE_REQUIRED",
+			);
+		}
+
+		const effectiveWhatsappEnabled =
+			body.contactWhatsappEnabled ?? existing.contactWhatsappEnabled;
+		const effectiveWhatsapp =
+			body.contactWhatsapp !== undefined
+				? body.contactWhatsapp?.trim() || null
+				: existing.contactWhatsapp;
+		if (effectiveWhatsappEnabled && !effectiveWhatsapp) {
+			throw new BadRequestError(
+				"Enter a WhatsApp number before making it publicly visible.",
+				"CONTACT_WHATSAPP_REQUIRED",
+			);
 		}
 
 		if (body.status === "available" && existing.status !== "available") {
@@ -527,6 +612,15 @@ export const listingsService = {
 			updateData.lat = lat;
 			updateData.lng = lng;
 			updateData.geom = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
+		}
+
+		if (updateData.contactPhone !== undefined) {
+			updateData.contactPhone =
+				(updateData.contactPhone as string | undefined)?.trim() || null;
+		}
+		if (updateData.contactWhatsapp !== undefined) {
+			updateData.contactWhatsapp =
+				(updateData.contactWhatsapp as string | undefined)?.trim() || null;
 		}
 
 		const [updated] = await db
@@ -610,6 +704,32 @@ export const listingsService = {
 	) {
 		if (isBotUserAgent(userAgent)) {
 			return { success: true };
+		}
+
+		if (type !== "view") {
+			const [listing] = await db
+				.select({
+					status: listings.status,
+					contactPhoneEnabled: listings.contactPhoneEnabled,
+					contactWhatsappEnabled: listings.contactWhatsappEnabled,
+				})
+				.from(listings)
+				.where(eq(listings.id, id));
+
+			if (!listing) {
+				throw new NotFoundError("Listing not found", "LISTING_NOT_FOUND");
+			}
+
+			const permitted =
+				listing.status === "available" &&
+				(type === "phone" ? listing.contactPhoneEnabled : listing.contactWhatsappEnabled);
+
+			if (!permitted) {
+				throw new ForbiddenError(
+					"This contact method is not available for this listing.",
+					"CONTACT_METHOD_NOT_PERMITTED",
+				);
+			}
 		}
 
 		if (type === "view") {

@@ -59,13 +59,13 @@ describe("Chat & Messaging Endpoints", () => {
 		listingId = listing.id;
 	});
 
-	test("POST /: Start conversation guards: 401 unauth, 404 listing not found, 400 self-message, 201 create", async () => {
+	test("POST /: Start-with-message guards: 401 unauth, 404 listing not found, 400 self-message, 201 create, 200 append to existing", async () => {
 		// 1. Unauthenticated -> 401
 		getSession.mockResolvedValue(null);
 		const unauthRes = await chatApp.request("/", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ listingId }),
+			body: JSON.stringify({ listingId, content: "Hi" }),
 		});
 		expect(unauthRes.status).toBe(401);
 
@@ -77,7 +77,7 @@ describe("Chat & Messaging Endpoints", () => {
 		const notFoundRes = await chatApp.request("/", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ listingId: "00000000-0000-0000-0000-000000000000" }),
+			body: JSON.stringify({ listingId: "00000000-0000-0000-0000-000000000000", content: "Hi" }),
 		});
 		expect(notFoundRes.status).toBe(404);
 
@@ -89,32 +89,165 @@ describe("Chat & Messaging Endpoints", () => {
 		const selfRes = await chatApp.request("/", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ listingId }),
+			body: JSON.stringify({ listingId, content: "Hi" }),
 		});
 		expect(selfRes.status).toBe(400);
 
-		// 4. Buyer starts conversation -> 201
+		// 4. Missing content -> 400 (validation)
 		getSession.mockResolvedValue({
 			session: { id: "s_buyer" },
 			user: { id: buyerId, role: "user", accountType: "user" },
 		});
+		const noContentRes = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId }),
+		});
+		expect(noContentRes.status).toBe(400);
+
+		// 5. Buyer starts conversation with first message -> 201, one conversation + one message
 		const createRes = await chatApp.request("/", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ listingId }),
+			body: JSON.stringify({ listingId, content: "Is this still available?" }),
 		});
 		expect(createRes.status).toBe(201);
-		const convData = await createRes.json() as typeof conversations.$inferSelect;
-		expect(convData.buyerId).toBe(buyerId);
-		expect(convData.sellerId).toBe(sellerId);
+		const createData = await createRes.json() as {
+			conversation: typeof conversations.$inferSelect;
+			message: typeof messages.$inferSelect;
+			isNewConversation: boolean;
+		};
+		expect(createData.isNewConversation).toBe(true);
+		expect(createData.conversation.buyerId).toBe(buyerId);
+		expect(createData.conversation.sellerId).toBe(sellerId);
+		expect(createData.message.content).toBe("Is this still available?");
+		expect(createData.message.senderId).toBe(buyerId);
 
-		// 5. Existing conversation lookup returns 200
-		const getExistingRes = await chatApp.request("/", {
+		const messagesAfterCreate = await db
+			.select()
+			.from(messages)
+			.where(eq(messages.conversationId, createData.conversation.id));
+		expect(messagesAfterCreate.length).toBe(1);
+
+		// 6. Same buyer messaging the same listing again -> 200, appends to the existing conversation
+		const appendRes = await chatApp.request("/", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ listingId }),
+			body: JSON.stringify({ listingId, content: "Following up" }),
 		});
-		expect(getExistingRes.status).toBe(200);
+		expect(appendRes.status).toBe(200);
+		const appendData = await appendRes.json() as {
+			conversation: typeof conversations.$inferSelect;
+			isNewConversation: boolean;
+		};
+		expect(appendData.isNewConversation).toBe(false);
+		expect(appendData.conversation.id).toBe(createData.conversation.id);
+
+		const messagesAfterAppend = await db
+			.select()
+			.from(messages)
+			.where(eq(messages.conversationId, createData.conversation.id));
+		expect(messagesAfterAppend.length).toBe(2);
+	});
+
+	test("POST /: retrying the same clientMessageId does not duplicate the message", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+
+		const first = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId, content: "Retry test", clientMessageId: "retry-1" }),
+		});
+		expect(first.status).toBe(201);
+		const firstData = await first.json() as {
+			conversation: { id: string };
+			message: { id: string };
+		};
+
+		const retry = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId, content: "Retry test", clientMessageId: "retry-1" }),
+		});
+		expect(retry.status).toBe(200); // existing conversation, not newly created
+		const retryData = await retry.json() as { message: { id: string } };
+		expect(retryData.message.id).toBe(firstData.message.id);
+
+		const rows = await db
+			.select()
+			.from(messages)
+			.where(eq(messages.conversationId, firstData.conversation.id));
+		expect(rows.length).toBe(1);
+	});
+
+	test("POST /: rejects starting a NEW conversation on a non-available listing, but replies to an existing one still work after it closes", async () => {
+		// A second, separate listing so this test doesn't collide with the shared `listingId` fixture.
+		const uuid2 = crypto.randomUUID();
+		const [country] = await db.insert(countries).values({
+			nameEn: "Sudan2 " + uuid2, nameAr: "السودان", code: "C2_" + uuid2.slice(0, 8)
+		}).returning();
+		const [city] = await db.insert(cities).values({
+			countryId: country.id, nameEn: "Khartoum2 " + uuid2, nameAr: "الخرطوم"
+		}).returning();
+		const [cat] = await db.insert(categories).values({
+			nameEn: "Sedan " + uuid2, nameAr: "سيدان", slug: "sedan-" + uuid2
+		}).returning();
+		const [closedListing] = await db.insert(listings).values({
+			userId: sellerId,
+			categoryId: cat.id,
+			countryId: country.id,
+			cityId: city.id,
+			title: "Reserved car",
+			description: "Already reserved",
+			price: 20000,
+			status: "reserved",
+		}).returning();
+
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+
+		// New conversation on a closed listing -> 403 LISTING_NOT_CONTACTABLE
+		const blockedRes = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId: closedListing.id, content: "Still available?" }),
+		});
+		expect(blockedRes.status).toBe(403);
+		const blockedData = await blockedRes.json() as { code: string };
+		expect(blockedData.code).toBe("LISTING_NOT_CONTACTABLE");
+
+		// Start a conversation on this second listing while it's still available.
+		await db.update(listings).set({ status: "available" }).where(eq(listings.id, closedListing.id));
+		const startRes = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId: closedListing.id, content: "Hello" }),
+		});
+		expect(startRes.status).toBe(201);
+		const startData = await startRes.json() as { conversation: { id: string } };
+
+		// Close the listing, then confirm the EXISTING conversation still accepts replies.
+		await db.update(listings).set({ status: "sold" }).where(eq(listings.id, closedListing.id));
+		const replyRes = await chatApp.request(`/${startData.conversation.id}/messages`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "Still interested?" }),
+		});
+		expect(replyRes.status).toBe(201);
+
+		// And a second message-start attempt for the same buyer+listing still just appends
+		// (existing conversation), even though the listing is now closed.
+		const secondStartRes = await chatApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ listingId: closedListing.id, content: "One more thing" }),
+		});
+		expect(secondStartRes.status).toBe(200);
 	});
 
 	test("GET / and POST /:id/messages and GET /:id/messages full flow with participant auth", async () => {
@@ -170,9 +303,9 @@ describe("Chat & Messaging Endpoints", () => {
 
 		const getRes = await chatApp.request(`/${conv.id}/messages`);
 		expect(getRes.status).toBe(200);
-		const msgs = await getRes.json() as (typeof messages.$inferSelect)[];
-		expect(msgs.length).toBe(1);
-		expect(msgs[0].content).toBe("Hello! Is this car still available?");
+		const msgsPage = await getRes.json() as { items: (typeof messages.$inferSelect)[] };
+		expect(msgsPage.items.length).toBe(1);
+		expect(msgsPage.items[0].content).toBe("Hello! Is this car still available?");
 
 		// 4. Buyer lists conversations -> 200
 		getSession.mockResolvedValue({
@@ -181,8 +314,63 @@ describe("Chat & Messaging Endpoints", () => {
 		});
 		const listRes = await chatApp.request("/");
 		expect(listRes.status).toBe(200);
-		const convList = await listRes.json() as any[];
-		expect(convList.some(c => c.id === conv.id)).toBe(true);
+		const convList = await listRes.json() as { items: any[] };
+		expect(convList.items.some((c) => c.id === conv.id)).toBe(true);
+	});
+
+	test("GET / paginates, includes safe listing/participant summaries, and unread counts; GET /:id/messages paginates ascending and marks the other participant's messages read", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+
+		const [conv] = await db.insert(conversations).values({ listingId, buyerId, sellerId }).returning();
+
+		// Seller sends a message the buyer hasn't read yet.
+		getSession.mockResolvedValue({
+			session: { id: "s_seller" },
+			user: { id: sellerId, role: "user", accountType: "user" },
+		});
+		await chatApp.request(`/${conv.id}/messages`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "First" }),
+		});
+		await chatApp.request(`/${conv.id}/messages`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "Second" }),
+		});
+
+		// Buyer's conversation list shows the safe summaries and an unread count of 2.
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+		const listRes = await chatApp.request("/?page=1&limit=20");
+		expect(listRes.status).toBe(200);
+		const listJson = await listRes.json() as { items: any[]; total: number; page: number; limit: number };
+		const row = listJson.items.find((c) => c.id === conv.id);
+		expect(row).toBeDefined();
+		expect(row.listing).toMatchObject({ id: listingId, title: "Car for sale by seller", status: "available" });
+		expect(row.listing).not.toHaveProperty("description");
+		expect(row.participant).toMatchObject({ id: sellerId, name: "Seller User" });
+		expect(row.unreadCount).toBe(2);
+		expect(listJson.page).toBe(1);
+		expect(listJson.limit).toBe(20);
+
+		// Fetching the thread marks the seller's messages as read, ascending order preserved.
+		const messagesRes = await chatApp.request(`/${conv.id}/messages`);
+		expect(messagesRes.status).toBe(200);
+		const messagesJson = await messagesRes.json() as { items: { content: string; isRead: boolean }[] };
+		expect(messagesJson.items.map((m) => m.content)).toEqual(["First", "Second"]);
+		expect(messagesJson.items.every((m) => m.isRead)).toBe(true);
+
+		// Unread count is now 0.
+		const listAfterRes = await chatApp.request("/");
+		const listAfterJson = await listAfterRes.json() as { items: any[] };
+		const rowAfter = listAfterJson.items.find((c) => c.id === conv.id);
+		expect(rowAfter.unreadCount).toBe(0);
 	});
 
 	test("POST /:id/messages enforces per-user rate limiting (429)", async () => {

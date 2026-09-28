@@ -157,15 +157,23 @@ function CreateListingPage() {
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
-					<Button asChild>
-						<Link to="/$locale/listings/$id" params={{ locale, id: draftId }}>
-							{locale === "ar" ? "عرض الإعلان" : "View listing"}
-						</Link>
+					<Button
+						render={
+							<Link
+								to="/$locale/listings/$id"
+								params={{ locale, id: draftId }}
+							/>
+						}
+					>
+						{locale === "ar" ? "عرض الإعلان" : "View listing"}
 					</Button>
-					<Button variant="outline" asChild>
-						<Link to="/$locale/dashboard/listings" params={{ locale }}>
-							{locale === "ar" ? "إعلاناتي" : "My Listings"}
-						</Link>
+					<Button
+						variant="outline"
+						render={
+							<Link to="/$locale/dashboard/listings" params={{ locale }} />
+						}
+					>
+						{locale === "ar" ? "إعلاناتي" : "My Listings"}
 					</Button>
 				</div>
 			</div>

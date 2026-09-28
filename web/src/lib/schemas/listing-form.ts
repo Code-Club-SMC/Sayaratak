@@ -15,7 +15,7 @@ const editableListingStatuses = [
 	"rented",
 ] as const;
 
-const optionalNumber = (schema: z.ZodNumber) =>
+const optionalNumber = (schema: z.ZodType<number>) =>
 	z.preprocess(
 		(value) => (value === "" || value === null ? undefined : value),
 		schema.optional(),
@@ -65,6 +65,10 @@ export const listingFormSchema = z.object({
 		)
 		.default([]),
 	rentalPeriod: z.enum(["daily", "weekly", "monthly"]).optional(),
+	contactPhone: z.string().trim().min(6).max(20).optional(),
+	contactPhoneEnabled: z.boolean().default(false),
+	contactWhatsapp: z.string().trim().min(6).max(20).optional(),
+	contactWhatsappEnabled: z.boolean().default(false),
 });
 
 export type ListingFormValues = z.infer<typeof listingFormSchema>;
@@ -79,6 +83,8 @@ export const defaultListingFormValues: ListingFormValues = {
 	currency: "SDG",
 	status: "draft",
 	media: [],
+	contactPhoneEnabled: false,
+	contactWhatsappEnabled: false,
 };
 
 function emptyToUndefined(value: string | undefined): string | undefined {
@@ -130,6 +136,10 @@ export function toListingMutationPayload(
 		specs,
 		media: values.media as ListingMediaInput[],
 		rentalPeriod: values.rentalPeriod,
+		contactPhone: emptyToUndefined(values.contactPhone),
+		contactPhoneEnabled: values.contactPhoneEnabled,
+		contactWhatsapp: emptyToUndefined(values.contactWhatsapp),
+		contactWhatsappEnabled: values.contactWhatsappEnabled,
 	};
 }
 
@@ -151,11 +161,11 @@ export function fromListingDetail(listing: ListingDetail): ListingFormValues {
 		status,
 		lat: listing.lat,
 		lng: listing.lng,
-		year: listing.year,
-		mileage: listing.mileage,
-		transmission: listing.transmission,
-		fuelType: listing.fuelType,
-		condition: listing.condition,
+		year: listing.year ?? undefined,
+		mileage: listing.mileage ?? undefined,
+		transmission: listing.transmission ?? undefined,
+		fuelType: listing.fuelType ?? undefined,
+		condition: listing.condition ?? undefined,
 		trim:
 			typeof listing.specs?.trim === "string" ? listing.specs.trim : undefined,
 		engineSize:
@@ -178,5 +188,9 @@ export function fromListingDetail(listing: ListingDetail): ListingFormValues {
 				}))
 			: [],
 		rentalPeriod: listing.rentalPeriod,
+		contactPhone: listing.contactPhone ?? undefined,
+		contactPhoneEnabled: Boolean(listing.contactPhoneEnabled),
+		contactWhatsapp: listing.contactWhatsapp ?? undefined,
+		contactWhatsappEnabled: Boolean(listing.contactWhatsappEnabled),
 	};
 }

@@ -120,7 +120,7 @@ const recentlyViewed = [
 ];
 
 function DashboardOverview() {
-	const { t, locale } = useTranslation();
+	const { locale } = useTranslation();
 	const { user } = Route.useRouteContext();
 
 	return (
@@ -591,6 +591,7 @@ function DashboardOverview() {
 					</ul>
 					<Link
 						to="/$locale/dashboard/settings"
+						params={{ locale }}
 						className="text-blue-600 text-[13px] font-medium flex items-center gap-1 hover:underline"
 					>
 						Complete Now <ArrowRight className="size-3.5" />
@@ -640,6 +641,7 @@ function DashboardOverview() {
 
 					<Link
 						to="/$locale/dashboard/subscription"
+						params={{ locale }}
 						className="text-blue-600 text-[13px] font-medium flex items-center gap-1 hover:underline"
 					>
 						Manage Subscription <ArrowRight className="size-3.5" />
@@ -654,6 +656,7 @@ function DashboardOverview() {
 					<div className="space-y-5">
 						<Link
 							to="/$locale/dashboard/settings"
+							params={{ locale }}
 							className="flex items-start gap-3.5 group"
 						>
 							<div className="size-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -674,6 +677,7 @@ function DashboardOverview() {
 
 						<Link
 							to="/$locale/dashboard/listings"
+							params={{ locale }}
 							className="flex items-start gap-3.5 group"
 						>
 							<div className="size-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -694,6 +698,7 @@ function DashboardOverview() {
 
 						<Link
 							to="/$locale/dashboard/settings"
+							params={{ locale }}
 							className="flex items-start gap-3.5 group"
 						>
 							<div className="size-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
