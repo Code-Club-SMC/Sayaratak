@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Filter, MessageSquare, MoreVertical, Search } from "lucide-react";
+import { z } from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$locale/_dashboard/dashboard/messages")({
+	validateSearch: z.object({ startListingId: z.string().optional() }),
 	component: MessagesPage,
 });
 
