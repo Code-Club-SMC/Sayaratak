@@ -155,6 +155,41 @@ export function ReviewPanel({
 							{mediaCount} {locale === "ar" ? "صورة" : "photo(s)"}
 						</div>
 					</div>
+
+					<div className="rounded-md border border-border p-4">
+						<div className="text-xs font-medium uppercase text-muted-foreground">
+							{locale === "ar" ? "ما سيراه المشترون" : "What buyers will see"}
+						</div>
+						<div className="mt-2 space-y-1.5 text-sm">
+							<div className="flex items-center justify-between gap-3">
+								<span className="text-muted-foreground">
+									{locale === "ar" ? "الهاتف" : "Phone"}
+								</span>
+								<span className="font-medium">
+									{values.contactPhoneEnabled && values.contactPhone
+										? values.contactPhone
+										: locale === "ar"
+											? "غير ظاهر"
+											: "Not shown"}
+								</span>
+							</div>
+							<div className="flex items-center justify-between gap-3">
+								<span className="text-muted-foreground">WhatsApp</span>
+								<span className="font-medium">
+									{values.contactWhatsappEnabled && values.contactWhatsapp
+										? values.contactWhatsapp
+										: locale === "ar"
+											? "غير ظاهر"
+											: "Not shown"}
+								</span>
+							</div>
+							<p className="pt-1 text-xs text-muted-foreground">
+								{locale === "ar"
+									? "يمكن للمشترين دائماً مراسلتك عبر سيارتك."
+									: "Buyers can always message you through Sayaratak."}
+							</p>
+						</div>
+					</div>
 				</aside>
 			</div>
 		</section>
