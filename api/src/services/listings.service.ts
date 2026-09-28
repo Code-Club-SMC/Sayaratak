@@ -16,7 +16,12 @@ import {
 	extractPublicId,
 } from "../lib/cloudinary";
 import { isBotUserAgent } from "../lib/bot-detection";
-import { NotFoundError, ForbiddenError, GoneError } from "../lib/errors";
+import {
+	NotFoundError,
+	ForbiddenError,
+	GoneError,
+	BadRequestError,
+} from "../lib/errors";
 import type { SessionUser } from "../middleware/auth";
 import type {
 	CreateListingInput,
@@ -100,6 +105,10 @@ const listingResponseFields = {
 	media: listings.media,
 	createdAt: listings.createdAt,
 	updatedAt: listings.updatedAt,
+	contactPhone: listings.contactPhone,
+	contactPhoneEnabled: listings.contactPhoneEnabled,
+	contactWhatsapp: listings.contactWhatsapp,
+	contactWhatsappEnabled: listings.contactWhatsappEnabled,
 };
 
 const publicListingSelection = {
@@ -424,6 +433,19 @@ export const listingsService = {
 			);
 		}
 
+		if (body.contactPhoneEnabled && !body.contactPhone?.trim()) {
+			throw new BadRequestError(
+				"Enter a phone number before making it publicly visible.",
+				"CONTACT_PHONE_REQUIRED",
+			);
+		}
+		if (body.contactWhatsappEnabled && !body.contactWhatsapp?.trim()) {
+			throw new BadRequestError(
+				"Enter a WhatsApp number before making it publicly visible.",
+				"CONTACT_WHATSAPP_REQUIRED",
+			);
+		}
+
 		const insertData: typeof listings.$inferInsert = {
 			userId,
 			categoryId: body.categoryId,
@@ -455,6 +477,10 @@ export const listingsService = {
 					: { url: m.url, isPrimary: m.isPrimary ?? false },
 			),
 			rentalPeriod: body.rentalPeriod || null,
+			contactPhone: body.contactPhone?.trim() || null,
+			contactPhoneEnabled: body.contactPhoneEnabled ?? false,
+			contactWhatsapp: body.contactWhatsapp?.trim() || null,
+			contactWhatsappEnabled: body.contactWhatsappEnabled ?? false,
 		};
 
 		const [created] = await db
@@ -481,6 +507,32 @@ export const listingsService = {
 
 		if (existing.userId !== currentUser.id && currentUser.role !== "admin") {
 			throw new ForbiddenError("Forbidden", "FORBIDDEN");
+		}
+
+		const effectivePhoneEnabled =
+			body.contactPhoneEnabled ?? existing.contactPhoneEnabled;
+		const effectivePhone =
+			body.contactPhone !== undefined
+				? body.contactPhone?.trim() || null
+				: existing.contactPhone;
+		if (effectivePhoneEnabled && !effectivePhone) {
+			throw new BadRequestError(
+				"Enter a phone number before making it publicly visible.",
+				"CONTACT_PHONE_REQUIRED",
+			);
+		}
+
+		const effectiveWhatsappEnabled =
+			body.contactWhatsappEnabled ?? existing.contactWhatsappEnabled;
+		const effectiveWhatsapp =
+			body.contactWhatsapp !== undefined
+				? body.contactWhatsapp?.trim() || null
+				: existing.contactWhatsapp;
+		if (effectiveWhatsappEnabled && !effectiveWhatsapp) {
+			throw new BadRequestError(
+				"Enter a WhatsApp number before making it publicly visible.",
+				"CONTACT_WHATSAPP_REQUIRED",
+			);
 		}
 
 		if (body.status === "available" && existing.status !== "available") {
@@ -527,6 +579,15 @@ export const listingsService = {
 			updateData.lat = lat;
 			updateData.lng = lng;
 			updateData.geom = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
+		}
+
+		if (updateData.contactPhone !== undefined) {
+			updateData.contactPhone =
+				(updateData.contactPhone as string | undefined)?.trim() || null;
+		}
+		if (updateData.contactWhatsapp !== undefined) {
+			updateData.contactWhatsapp =
+				(updateData.contactWhatsapp as string | undefined)?.trim() || null;
 		}
 
 		const [updated] = await db

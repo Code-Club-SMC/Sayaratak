@@ -364,6 +364,107 @@ describe("Listings Engine Endpoints", () => {
 		expect(res.status).toBe(403);
 	});
 
+	test("POST /api/listings rejects contactPhoneEnabled=true with no phone", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactPhoneEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_PHONE_REQUIRED");
+	});
+
+	test("POST /api/listings accepts contactPhoneEnabled=true with a phone and never copies the account phone", async () => {
+		const sellerAccountPhone = "+249900000000";
+		await db
+			.update(user)
+			.set({ phone: sellerAccountPhone })
+			.where(eq(user.id, "u1"));
+
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const res = await listingsApp.request("/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				categoryId,
+				countryId,
+				cityId,
+				title: "Toyota Corolla 2022",
+				description: "Well maintained sedan, single owner",
+				price: 12000000,
+				currency: "SDG",
+				status: "available",
+				contactPhone: "+249911111111",
+				contactPhoneEnabled: true,
+			}),
+		});
+
+		expect(res.status).toBe(201);
+		const json = (await res.json()) as Listing & { contactPhone: string | null };
+		expect(json.contactPhone).toBe("+249911111111");
+		// Seller's account login phone must never leak in here even implicitly.
+		expect(json.contactPhone).not.toBe(sellerAccountPhone);
+
+		await db.delete(listings).where(eq(listings.id, json.id));
+	});
+
+	test("PUT /api/listings/:id rejects enabling whatsapp without ever having provided a number", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s1" },
+			user: { id: "u1", role: "user", banned: false, accountType: "user" },
+		});
+
+		const [draft] = await db
+			.insert(listings)
+			.values({
+				userId: "u1",
+				categoryId,
+				countryId,
+				cityId,
+				title: "Draft Hyundai Accent",
+				description: "Draft listing pending contact details",
+				price: 8000000,
+				currency: "SDG",
+				status: "draft",
+				specs: {},
+				media: [],
+			})
+			.returning();
+
+		const res = await listingsApp.request(`/${draft.id}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ contactWhatsappEnabled: true }),
+		});
+
+		expect(res.status).toBe(400);
+		const json = (await res.json()) as ApiError & { code: string };
+		expect(json.code).toBe("CONTACT_WHATSAPP_REQUIRED");
+
+		await db.delete(listings).where(eq(listings.id, draft.id));
+	});
+
 	test("DELETE /api/listings/:id soft deletes listing", async () => {
 		getSession.mockResolvedValue({
 			session: { id: "s1" },

@@ -275,6 +275,18 @@ export const ERROR_DICTIONARY: Record<string, ErrorDefinition> = {
 		ar: "الغرض غير صالح",
 		status: 400,
 	},
+	CONTACT_PHONE_REQUIRED: {
+		code: "CONTACT_PHONE_REQUIRED",
+		en: "Enter a phone number before making it publicly visible.",
+		ar: "أدخل رقم هاتف قبل إظهاره للعامة.",
+		status: 400,
+	},
+	CONTACT_WHATSAPP_REQUIRED: {
+		code: "CONTACT_WHATSAPP_REQUIRED",
+		en: "Enter a WhatsApp number before making it publicly visible.",
+		ar: "أدخل رقم واتساب قبل إظهاره للعامة.",
+		status: 400,
+	},
 
 	// Rate Limiting & Monetization
 	TOO_MANY_REQUESTS: {

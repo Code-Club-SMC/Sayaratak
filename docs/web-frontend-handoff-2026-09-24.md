@@ -220,3 +220,12 @@ Current gate:
 - Migration file created at `api/src/db/migrations/20260927175623_amazing_zaran/migration.sql` with correct columns.
 - Database migration apply (`bun run db:migrate`) blocked by lack of database connection in this environment.
 - Verification: Schema file modified, migration SQL generated and verified.
+
+### Listing-Conversation Flow — Task 2 Completed
+
+- Added Zod validation requiring a non-empty number whenever its consent flag is enabled, on
+  both create and update (update merges against the existing stored value so enabling consent
+  without resubmitting the number still validates correctly).
+- Added `CONTACT_PHONE_REQUIRED`/`CONTACT_WHATSAPP_REQUIRED` to `ERROR_DICTIONARY` (en/ar).
+- Confirmed no code path copies `user.phone` (the account login number) into a new listing.
+- Verification: `cd api && bun test tests/listings.test.ts`, `cd api && bun test` (full suite).
