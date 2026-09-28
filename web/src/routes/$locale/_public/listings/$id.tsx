@@ -27,7 +27,7 @@ import { ReportDialog } from "@/components/domain/report-dialog";
 import { ShareSheet } from "@/components/domain/share-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { apiPost } from "@/lib/api";
+import { ApiRequestError, apiPost } from "@/lib/api";
 import { useSession } from "@/lib/auth-client";
 import { useTranslation } from "@/lib/i18n";
 import { favoriteKeys } from "@/lib/query-keys";
@@ -53,7 +53,43 @@ export const Route = createFileRoute("/$locale/_public/listings/$id")({
 		);
 	},
 	component: ListingDetailPage,
+	errorComponent: ListingDetailError,
 });
+
+function ListingDetailError({ error }: { error: unknown }) {
+	const { locale } = Route.useParams();
+	const isNotFound = error instanceof ApiRequestError && error.status === 404;
+
+	return (
+		<div className="min-h-screen flex flex-col items-center justify-center gap-3 p-8 bg-background text-center">
+			<h1 className="text-xl font-bold text-foreground">
+				{isNotFound
+					? locale === "ar"
+						? "الإعلان غير متاح"
+						: "Listing not available"
+					: locale === "ar"
+						? "حدث خطأ ما"
+						: "Something went wrong"}
+			</h1>
+			<p className="text-sm text-muted-foreground max-w-sm">
+				{isNotFound
+					? locale === "ar"
+						? "قد يكون هذا الإعلان قد أُزيل أو لم يعد متاحاً للعامة."
+						: "This listing may have been removed or is no longer public."
+					: locale === "ar"
+						? "تعذر تحميل هذا الإعلان. يرجى المحاولة مرة أخرى."
+						: "We couldn't load this listing. Please try again."}
+			</p>
+			<Link
+				to="/$locale/listings"
+				params={{ locale }}
+				className="text-sm font-semibold text-primary hover:underline"
+			>
+				{locale === "ar" ? "تصفح الإعلانات" : "Browse listings"}
+			</Link>
+		</div>
+	);
+}
 
 const STATUS_BADGE: Record<
 	string,
