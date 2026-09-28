@@ -11,5 +11,11 @@ export const sendMessageSchema = z.object({
 	clientMessageId: z.string().min(1).max(100).optional(),
 });
 
+export const chatPaginationQuerySchema = z.object({
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
 export type StartChatInput = z.infer<typeof startChatSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type ChatPaginationQuery = z.infer<typeof chatPaginationQuerySchema>;

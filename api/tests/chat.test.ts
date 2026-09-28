@@ -303,9 +303,9 @@ describe("Chat & Messaging Endpoints", () => {
 
 		const getRes = await chatApp.request(`/${conv.id}/messages`);
 		expect(getRes.status).toBe(200);
-		const msgs = await getRes.json() as (typeof messages.$inferSelect)[];
-		expect(msgs.length).toBe(1);
-		expect(msgs[0].content).toBe("Hello! Is this car still available?");
+		const msgsPage = await getRes.json() as { items: (typeof messages.$inferSelect)[] };
+		expect(msgsPage.items.length).toBe(1);
+		expect(msgsPage.items[0].content).toBe("Hello! Is this car still available?");
 
 		// 4. Buyer lists conversations -> 200
 		getSession.mockResolvedValue({
@@ -314,8 +314,63 @@ describe("Chat & Messaging Endpoints", () => {
 		});
 		const listRes = await chatApp.request("/");
 		expect(listRes.status).toBe(200);
-		const convList = await listRes.json() as any[];
-		expect(convList.some(c => c.id === conv.id)).toBe(true);
+		const convList = await listRes.json() as { items: any[] };
+		expect(convList.items.some((c) => c.id === conv.id)).toBe(true);
+	});
+
+	test("GET / paginates, includes safe listing/participant summaries, and unread counts; GET /:id/messages paginates ascending and marks the other participant's messages read", async () => {
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+
+		const [conv] = await db.insert(conversations).values({ listingId, buyerId, sellerId }).returning();
+
+		// Seller sends a message the buyer hasn't read yet.
+		getSession.mockResolvedValue({
+			session: { id: "s_seller" },
+			user: { id: sellerId, role: "user", accountType: "user" },
+		});
+		await chatApp.request(`/${conv.id}/messages`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "First" }),
+		});
+		await chatApp.request(`/${conv.id}/messages`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: "Second" }),
+		});
+
+		// Buyer's conversation list shows the safe summaries and an unread count of 2.
+		getSession.mockResolvedValue({
+			session: { id: "s_buyer" },
+			user: { id: buyerId, role: "user", accountType: "user" },
+		});
+		const listRes = await chatApp.request("/?page=1&limit=20");
+		expect(listRes.status).toBe(200);
+		const listJson = await listRes.json() as { items: any[]; total: number; page: number; limit: number };
+		const row = listJson.items.find((c) => c.id === conv.id);
+		expect(row).toBeDefined();
+		expect(row.listing).toMatchObject({ id: listingId, title: "Car for sale by seller", status: "available" });
+		expect(row.listing).not.toHaveProperty("description");
+		expect(row.participant).toMatchObject({ id: sellerId, name: "Seller User" });
+		expect(row.unreadCount).toBe(2);
+		expect(listJson.page).toBe(1);
+		expect(listJson.limit).toBe(20);
+
+		// Fetching the thread marks the seller's messages as read, ascending order preserved.
+		const messagesRes = await chatApp.request(`/${conv.id}/messages`);
+		expect(messagesRes.status).toBe(200);
+		const messagesJson = await messagesRes.json() as { items: { content: string; isRead: boolean }[] };
+		expect(messagesJson.items.map((m) => m.content)).toEqual(["First", "Second"]);
+		expect(messagesJson.items.every((m) => m.isRead)).toBe(true);
+
+		// Unread count is now 0.
+		const listAfterRes = await chatApp.request("/");
+		const listAfterJson = await listAfterRes.json() as { items: any[] };
+		const rowAfter = listAfterJson.items.find((c) => c.id === conv.id);
+		expect(rowAfter.unreadCount).toBe(0);
 	});
 
 	test("POST /:id/messages enforces per-user rate limiting (429)", async () => {

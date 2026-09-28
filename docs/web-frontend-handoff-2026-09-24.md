@@ -267,3 +267,36 @@ Current gate:
 - Added missing 401 auth-boundary tests for `GET /favorites/:listingId` and `POST /favorites/:listingId`
   per AGENTS.md section 7 testing standards (every endpoint requires auth test).
 - Verification: `cd api && bun test tests/social.test.ts` (13 tests pass), `cd api && bun test` (149 tests pass, no regressions).
+
+### Listing-Conversation Flow — Task 6 Completed
+
+- Added missing 401 (no session) and 400 (missing `reason`) tests for `POST /reports`, closing
+  an AGENTS.md §7 coverage gap. No implementation change needed — `requireAuth()` and
+  `createReportSchema` already enforced both.
+- Verification: `cd api && bun test tests/social.test.ts`, `cd api && bun test` (151 pass).
+
+### Listing-Conversation Flow — Task 7 Completed
+
+- `POST /api/chat` now requires the first message's `content` and creates the conversation and
+  message in a single DB transaction — a failed insert can no longer leave an empty conversation
+  behind.
+- Both `POST /api/chat` and `POST /api/chat/:id/messages` accept an optional `clientMessageId`;
+  retries with the same id are safe (`onConflictDoNothing` against a new partial unique index on
+  `messages(conversation_id, client_message_id)`), and concurrent conversation starts are safe
+  via `onConflictDoNothing` on the existing `(listing_id, buyer_id)` unique constraint.
+- Starting a *new* conversation now requires `listing.status === "available"`
+  (`LISTING_NOT_CONTACTABLE`, 403); existing conversations and all replies remain usable
+  regardless of listing status.
+- Verification: `cd api && bun test tests/chat.test.ts` (5 pass), `cd api && bun test` (153 pass).
+- Execution note: switched from subagent-driven-development to inline execution starting this
+  task (see plan ledger) — remaining tasks are implemented directly in-session.
+
+### Listing-Conversation Flow — Task 8 Completed
+
+- `GET /chat` and `GET /chat/:id/messages` are now paginated (`page`/`limit`) instead of
+  returning full history.
+- Conversation list rows include an allowlisted `listing` summary
+  (id/title/status/price/currency/primaryImage — never the full row) and the other participant's
+  allowlisted summary (id/name/image), plus a real `unreadCount`.
+- Fetching a thread's messages marks the other participant's unread messages as read.
+- Verification: `cd api && bun test tests/chat.test.ts` (6 pass), `cd api && bun test` (154 pass).
